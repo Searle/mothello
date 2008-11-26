@@ -922,10 +922,11 @@
 
         var indent= '';
 
-        var nodeStr= function(i, node, prefix) {
+        var nodeStr= function(i, i2, node, prefix) {
+            var link= "javascript:console.log(_inspectorNode(" + i2 + "))";
             return indent + prefix + "[" + i + ":"
-                + " move=" + node.move
-                + " prob=" + (Math.round((0 + node.prob) * 10000) / 10000)
+                + " move=<a href=\"" + link + "\">" + node.move + "</a>"
+                + (node.prob ? " prob=" + (Math.round((node.prob) * 10000) / 10000) : "")
                 + (node.minprob ? " minprob=" + (Math.round(node.minprob * 10000) / 10000) : "")
                 + " nb=" + node.nb
                 + "]";
@@ -938,7 +939,7 @@
         for (var i in inspectNodes) {
             node= node.childNodes[inspectNodes[i]];
             var link= "<a href='javascript:_inspectorSetLevel(" + i + ")'>[-]</a>";
-            html += nodeStr(inspectNodes[i], node, link + "&nbsp;");
+            html += nodeStr(inspectNodes[i], i, node, link + "&nbsp;");
             html += ":<br />";
             indent += "&nbsp;&nbsp;";
         }
@@ -954,12 +955,26 @@
                 if (childNode.childNodes && childNode.childNodes.length) {
                     link= "<a href='javascript:_inspectorAppend(" + j + ")'>" + link + "</a>";
                 }
-                html += nodeStr(j, childNode, link + "&nbsp;");
+                html += nodeStr(j, ~j, childNode, link + "&nbsp;");
                 html += "<br />";
             }
         }
 
         document.getElementById("inspector").innerHTML= html;
+    }
+
+    function _inspectorChildNode(n) {
+        var node= inspectRootNode;
+        var i= 0;
+        while (n--) node= node.childNodes[inspectNodes[i++]];
+        return node;
+    }
+
+    function _inspectorNode(n) {
+        if (n < 0) {
+            return _inspectorChildNode(inspectNodes.length).childNodes[~n];
+        }
+        return _inspectorChildNode(n + 1);
     }
 
     function _inspectorSetLevel(n) {
@@ -1703,8 +1718,8 @@ if (xx++ > 300) {
     #inspector {
         position: absolute;
         top: 8em;
-        left: 35em;
-        width: 400px;
+        left: 25em;
+        width: 500px;
         height: auto;
         border: 1px solid #666;
         margin: 5px;
