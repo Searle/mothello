@@ -1116,7 +1116,7 @@ if (xx++ > 300) {
             // richtig!
             var value= (diff > 0 ? 1 : 0) ^ ((capCol + nodei) & 1);
 
-            node.value= value;
+            node.prob= node.value= value;
             node.nb= 1;
             
 
@@ -1125,6 +1125,7 @@ if (xx++ > 300) {
                 value= 1 - value;
                 nodes[nodei].value += value;
                 nodes[nodei].nb++;
+                nodes[nodei].prob= nodes[nodei].value / nodes[nodei].nb;
             }
             return true;
         }
@@ -1703,8 +1704,8 @@ if (xx++ > 300) {
     #inspector {
         position: absolute;
         top: 8em;
-        left: 35em;
-        width: 400px;
+        left: 25em;
+        width: 500px;
         height: auto;
         border: 1px solid #666;
         margin: 5px;
