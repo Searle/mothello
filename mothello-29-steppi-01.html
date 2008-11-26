@@ -1036,11 +1036,6 @@
                     return childNode;
                 }
                 
-                if (childNode.doneCount == childNode.childNodes.length) {
-                    // console.warn("Skipping move " + childNode.move + "(doneCount: " + childNode.doneCount + ", childCount: " + childNode.childNodes.length + ")");
-                    continue;
-                }
-
                 // Valkyria:
                 // winrate := next.Wins/next.Visits;
                 // uct := UCTK*Sqrt(ln(n.Visits)/(5*next.Visits));
@@ -1067,10 +1062,6 @@
         function playOneSequence() {
 
             restoreBoard();
-            if (rootNode.childNodes && rootNode.doneCount == rootNode.childNodes.length) {
-                return false;
-            }
-
             var nodes= [ rootNode ];
             var nodei = 0;
             while (nodes[nodei].childNodes) {
@@ -1086,6 +1077,22 @@
             }
 
             var node= nodes[nodei];
+            var nextMoves= getValidMoves();
+
+            var uniqueNextMoves= unique(nextMoves);
+
+            // Hopefully fast, have to check
+            node.childNodes= Array(uniqueNextMoves.length);
+            for (var i in uniqueNextMoves) {
+                node.childNodes[i]= {
+                    move: uniqueNextMoves[i],
+                    // childNodes: null,
+                    // validMoves: nextMoves0,
+                    value: 0,
+                    nb: 0,
+                    doneCount: 0,
+                };
+            }
 
 var xx= 0;
 
@@ -1096,33 +1103,14 @@ if (xx++ > 300) {
     console.warn("Break in Random Game after 300 loops");
     break;
 }
-                var nextMoves= getValidMoves();
-
-                var uniqueNextMoves= unique(nextMoves);
-
-                // Hopefully fast, have to check
-                node.childNodes= Array(uniqueNextMoves.length);
-                for (var i in uniqueNextMoves) {
-                    node.childNodes[i]= {
-                        move: uniqueNextMoves[i],
-                        // childNodes: null,
-                        // validMoves: nextMoves0,
-                        value: 0,
-                        nb: 0,
-                        doneCount: 0,
-                    };
-                }
-
                 if (nextMoves[0] == 64) {
                     pass();
                     nextMoves= getValidMoves();
                     if (nextMoves[0] == 64) break;
-                    // ????
-                    continue;
                 }
-                node= node.childNodes[Math.floor(Math.random() * node.childNodes.length)];
-                setAt[node.move]();
-                nodes[++nodei]= node;
+                var nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
+                setAt[nextMove]();
+                nextMoves= getValidMoves();
             }
 
             // richtig!
@@ -1131,21 +1119,12 @@ if (xx++ > 300) {
             node.value= value;
             node.nb= 1;
             
-            // this node has no more valid moves
-            var done= true;
 
             // Update values
             while (nodei--) {
                 value= 1 - value;
                 nodes[nodei].value += value;
                 nodes[nodei].nb++;
-                if (done) {
-                    nodes[nodei].doneCount++;
-                    // console.log("DoneCount of node " + nodes[nodei].move + ": " + nodes[nodei].doneCount);
-                    done= nodes[nodei].doneCount == nodes[nodei].childNodes.length;
-                    if (done) console.log("Done node " + nodes[nodei].move);
-                }
-                // better?: done&= ++(nodes[nodei].doneCount) == nodes[nodei].childeNodes.length
             }
             return true;
         }
