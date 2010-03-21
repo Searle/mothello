@@ -2,6 +2,9 @@
 <title>MoThello</title>
 <script>
 
+    // 25: stabil - spielt besser?
+    // 28: umbau auf positiv -> besser
+
     // ====================================================================
     //  MoThello Version 2008-08-20. Inspired by MoGo.
     //  (c) 2008 by Dietrich Raisin, info1@raisin.de, www.raisin.de
@@ -16,6 +19,7 @@
     //  - Hashes are slow
     //  - Function calls are slow
     //  - Generating new arrays is slow
+    //  - JITs may be slower (MoThello is slower on Tamarin and V8)
     // ====================================================================
 
     if (typeof console == 'undefined') {
@@ -80,6 +84,14 @@
     // ====================================================================
 
     function initCellScore() {
+
+        // Generates a basic Scoring (how intense will a certain postition be looked at):
+        // 6 4 4 4 ..
+        // 4 1 2 2 ..
+        // 4 2 4 2 ..
+        // 4 2 2 2 ..
+        // ..
+
         cellScore= [];
         for (var i= 0; i < 64; i++) {
             cellScore[i]= 2;
@@ -161,10 +173,6 @@
     //
     //  flippedN    11.. Number of flipped stones to the left and to the right if white's move is N.
     //
-    //  // set1N       27.. DOCME
-    //
-    //  // set2N       35.. DOCME
-    //
     function initPosList() {
     
         initPosListDone= 0;
@@ -179,7 +187,7 @@
                 want1, want2, wantpos,
                 j,
                 valid,
-                newpos, flipped; // , set1, set2;
+                newpos, flipped;
 
             for (chunk= 8192; chunk--; pos0++) {
     
@@ -743,10 +751,10 @@
                 , 3);
         }
 
-        if (moves.length == 1) {
-            doMove(moves[0]);
-            return 1;
-        }
+//        if (moves.length == 1) {
+//            doMove(moves[0]);
+//            return 1;
+//        }
 
         var startTime= new Date().getTime();
 
@@ -786,7 +794,7 @@
         updateUI();
 
         var r= function(v) { var s= '        ' + (Math.round(v * 10) / 10); return s.substr(s.length - 8); };
-        var prefix= function(move) { return colName(col) + " " + ('' + (move + 100)).substr(1) + ":  "; };
+        var prefix= function(alg, move) { return alg + " " + colName(col) + " " + ('' + (move + 100)).substr(1) + ":  "; };
 
         var avgScore= function(opps, oppm) {
 
@@ -802,62 +810,95 @@
                 if (score < min) min= score;
                 d += score;
             }
-            return d / n + (max - min) * 0.2;
+
+            // returns contains the average score - 30% * (max - min).
+            // Now all moves with scores > d can be removed.
+
+            return d / n - (max - min) * 0.3;
         };
 
+        /**
+         *  Eliminate useless moves from the queue.
+         */
         var reduceMoves= function() {
 
-            calcMoveScore();
-            console.log(avgScore(scores, moves));
+            var before= moves.length;
+            var oppBefore= 0;
+            var oppAfter= 0;
 
-            var before= 0;
-            var after= 0;
+            // Reduce moves
+
+            calcMoveScore();
+            var d= avgScore(scores, moves);
+
+            var newMoves= [];
+            var newOppMoves= [];
+            var newOppScores= [];
+            for (var movei= moves.length; movei--; ) {
+                if (scores[moves[movei]] < d) {
+                    console.log("reduceMoves: eliminate " + moves[movei] + ", because " + scores[moves[movei]] + ' < ' + d);
+                    continue;
+                }
+                oppBefore += oppMoves[movei].length;
+                newMoves[newMoves.length]= moves[movei];
+                newOppMoves[newOppMoves.length]= oppMoves[movei];
+                newOppScores[newOppScores.length]= oppScores[movei];
+            }
+            moves= newMoves;
+            oppMoves= newOppMoves;
+            oppScores= newOppScores;
+
+            // Reduce oppMoves
 
             for (var movei in moves) {
                 var move= moves[movei];
 
-                var n= oppMoves[movei].length;
                 var oppm= oppMoves[movei];
                 var opps= oppScores[movei];
 
-
-                var min= 999999;
-                var max= -999999;
-                var d= 0;
-                for (var oppMovei= n; oppMovei--; ) {
-                    if (opps[oppMovei] > max) max= opps[oppMovei];
-                    if (opps[oppMovei] < min) min= opps[oppMovei];
-                    d += opps[oppMovei];
-                }
-                d /= n;
-                d += (max - min) * 0.2;
-             
-                var d2= avgScore(opps);
-                if (d != d2) { console.log(d + '!=' + d2 + " n=" + n + " opps.l=" + opps.length); die(); }
-
-                // d now contains the average score + 20% * (max - min).
-                // Now all moves with scores > d are removed.
+                var d= avgScore(opps);
 
                 var newOppMove=  [];
                 var newOppScore= [];
 
-                for (var oppMovei= n; oppMovei--; ) {
-                    if (opps[oppMovei] > d) continue;
+                for (var oppMovei= oppm.length; oppMovei--; ) {
+                    if (opps[oppMovei] < d) continue;
                     newOppMove[newOppMove.length]=   oppm[oppMovei];
                     newOppScore[newOppScore.length]= opps[oppMovei];
                 }
 
+                oppAfter += newOppMove.length;
+
                 oppMoves[movei]=  newOppMove;
                 oppScores[movei]= newOppScore;
-
-                before += n;
-                after += newOppMove.length;
             }
 
-            console.log("reduceMoves: before=" + before + " after=" + after);
+            console.log("reduceMoves: before=" + before + " after=" + moves.length + " oppBefore=" + oppBefore + " oppAfter=" + oppAfter);
         };    
 
-        var calcMoveScoreCut= function() {
+        var calcMoveScoreOppMax= function() {
+            scores= [];
+
+            for (var movei in moves) {
+                var move= moves[movei];
+
+                var n= oppMoves[movei].length;
+                var opps= oppScores[movei];
+
+                var max= -999999;
+                for (var oppMovei= n; oppMovei--; ) {
+                    if (opps[oppMovei] > max) max= opps[oppMovei];
+                }
+
+                scores[move]= -max;
+
+                if (1) {
+                    console.log(prefix('OppMax', move) + "max=" + r(max) + " score=" + r(scores[move]));
+                }
+            }
+        };    
+
+        var calcMoveScoreTest1= function() {
             scores= [];
 
             for (var movei in moves) {
@@ -875,78 +916,12 @@
                 var dd = 0;
                 for (var oppMovei= n; oppMovei--; ) {
                     var score= opps[oppMovei];
-                    dd += score > d ? d : score;
+                    dd -= score < d ? score : d + Math.pow(score - d, 2);
                 }
                 scores[move]= dd / n;
 
                 if (1) {
-                    var debug= '';
-                    for (var oppMovei= n; oppMovei--; ) {
-                        var score= opps[oppMovei];
-                        debug += ' [' + oppMoves[movei][oppMovei] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
-                    }
-                    console.log(prefix() + "d=" + r(d) + " score=" + r(scores[move]) + debug);
-                }
-            }
-        };    
-
-        var calcMoveScoreMin= function() {
-            scores= [];
-
-            for (var movei in moves) {
-                var move= moves[movei];
-
-                var n= oppMoves[movei].length;
-                var opps= oppScores[movei];
-
-                var min= 999999;
-                for (var oppMovei= n; oppMovei--; ) {
-                    if (min > opps[oppMovei]) min= opps[oppMovei];
-                }
-
-                scores[move]= min;
-
-                if (1) {
-                    console.log(prefix(move) + "min=" + r(min) + " score=" + r(scores[move]));
-                }
-            }
-        };    
-
-        var calcMoveScore1= function() {
-            scores= [];
-
-            for (var movei in moves) {
-                var move= moves[movei];
-
-                var n= oppMoves[movei].length;
-                var opps= oppScores[movei];
-
-/*
-                var min= 999999;
-                for (var oppMovei= n; oppMovei--; ) {
-                    if (min > opps[oppMovei]) min= opps[oppMovei];
-                }
-*/
-                var d= 0;
-                for (var oppMovei= n; oppMovei--; ) {
-                    d += opps[oppMovei];
-                }
-                d /= n;
-
-                var dd = 0;
-                for (var oppMovei= n; oppMovei--; ) {
-                    var score= opps[oppMovei];
-                    dd += score > d ? score : d - Math.pow(d - score, 2);
-                }
-                scores[move]= dd / n;
-
-                if (1) {
-                    var debug= '';
-                    for (var oppMovei= n; oppMovei--; ) {
-                        var score= opps[oppMovei];
-                        debug += ' [' + oppMoves[movei][oppMovei] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
-                    }
-                    console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(scores[move]) + debug);
+                    console.log(prefix('Test1', move) + " score=" + r(scores[move]));
                 }
             }
         };    
@@ -963,61 +938,45 @@
 
                 var n= oppMoves[movei].length;
                 var opps= oppScores[movei];
-                var smin= 99999999;
+                var max= -99999999;
                 var sum= 0;
 
                 for (oppMovei= n; oppMovei--; ) {
                     var score= opps[oppMovei];
-                    if (score < smin) smin= score;
-                    
+                    if (score > max) max= score;
+
                     sum += Math.pow(score - gamesPerMove, 8);
                 }
 
-                scores[move]= Math.floor(Math.pow(sum, 1/8) * smin / oppMoves[movei].length);
+                scores[move]= -Math.floor(Math.pow(sum, 1/8) * max / oppMoves[movei].length);
 
-                console.log(prefix(move) + ' score=' + scores[move]);
+                console.log(prefix('CK', move) + ' score=' + scores[move]);
             }
         };    
 
         var calcMoveScore= function() {
-            // col == 1 ? calcMoveScoreCK()  : calcMoveScoreCut();     // Cut 5 sec battery
-            // col == 1 ? calcMoveScoreMin() : calcMoveScoreCut();     // Min 5s battery
-            // col == 1 ? calcMoveScoreMin() : calcMoveScoreCK();     // Min 10s
-            col == 1 ? calcMoveScoreCK() : calcMoveScoreMin();     // Min 10s 17:27
+            // capCol == 1 ? calcMoveScoreMin() : calcMoveScoreCK();     // Min 10s
+            // capCol == 1 ? calcMoveScoreCK() : calcMoveScoreMin();     // Min 10s 17:27
+            // capCol == 1 ? calcMoveScoreCK() : calcMoveScoreOppMax();     // Min 10s 17:27
+            // calcMoveScoreOppMax();
+            // calcMoveScoreOppMax();
+            // calcMoveScoreCK();
+            calcMoveScoreTest1();
         };
 
         var inner= function() {
 
             time= new Date().getTime();
 
-            if (time < endTime) {
+            if (cleanupTime && time > cleanupTime) {
+                reduceMoves();
+                cleanupTime= Math.max(time + 500, (time + endTime) / 2);
+            }
+
+            if (moves.length > 1 && time < endTime) {
 
                 status("Thinking" + dots, 0, 1);
                 dots= dots.length > 30 ? '' : dots + '.';
-
-                // If a certain amount of time is used up, concentrate on the
-                // so far best three moves.
-
-                if (cleanupTime && time > cleanupTime) {
-                    reduceMoves();
-                    cleanupTime= Math.max(time + 500, (time + endTime) / 2);
-                }
-/*
-                if (resortTime && time > resortTime) {
-                    console.log("Resorting...");
-                    if (moves.length > 3) {
-                        moves.sort(function(a, b) { return scores[b] - scores[a]; });
-                        moves.splice(3, 64);
-                        
-                        // Reset the opps.
-                        // TODO: Is that a good idea?
-                        for (var movei in moves) {
-                            scores[moves[movei]]= 0;
-                        }
-                    }
-                    resortTime= 0;
-                }
-*/
 
                 var nextTime= time + 100;
                 while(true) {
@@ -1050,7 +1009,7 @@
                                 setAt[nextMove]();
                             }        
 
-                            if (capCol == 1) {
+                            if (capCol == 2) {
                                 if (diff > 0) oppScores[movei][oppMovei]++;
                                 if (diff < 0) oppScores[movei][oppMovei]--;
                             }
@@ -1064,7 +1023,7 @@
 
                     }
                 }
-                setTimeout(inner, 10);
+                setTimeout(inner, 50);
                 return;
             }
 
@@ -1130,6 +1089,7 @@
         else {
             status= colName(col) + '\'s turn. ' + status + '.';
         }
+        console.log(status);
         document.getElementById('status').innerHTML= status;
     }
 
@@ -1314,6 +1274,10 @@
         initBoard();
         refreshBoard();
         defaultStatus();
+
+        if (computerCol & col) {
+            computeMove();
+        }
     }
 
     function clickUndo() {
@@ -1395,6 +1359,7 @@
                 if (!computeMove() && !computeMove()) {
                     computerCol= oldComputerCol;
                     console.log("GAME IS OVER");
+                    defaultStatus();
 
                     score[diff > 0 ? 0 : 1]++;
                     document.getElementById('button_auto').innerHTML= score.join(':');
@@ -1435,11 +1400,17 @@
 
 
             // seltsamer move von weiss
-            setAt[26](); setAt[34](); setAt[41](); setAt[18](); setAt[42](); setAt[25](); setAt[20](); setAt[33](); setAt[44](); setAt[53](); setAt[32](); setAt[40](); setAt[11](); setAt[10](); setAt[2](); setAt[17](); setAt[16](); setAt[24](); setAt[48]();
+            // setAt[26](); setAt[34](); setAt[41](); setAt[18](); setAt[42](); setAt[25](); setAt[20](); setAt[33](); setAt[44](); setAt[53](); setAt[32](); setAt[40](); setAt[11](); setAt[10](); setAt[2](); setAt[17](); setAt[16](); setAt[24](); setAt[48]();
             // setAt[8](); setAt[0](); setAt[51](); setAt[19](); setAt[49](); setAt[50](); setAt[12](); setAt[21](); setAt[9](); setAt[5](); setAt[4](); setAt[60](); setAt[58](); setAt[29](); setAt[13](); setAt[6](); setAt[7](); setAt[3](); setAt[1](); setAt[59](); setAt[57](); setAt[43](); setAt[45](); setAt[37](); setAt[52](); setAt[61](); setAt[38](); setAt[31](); setAt[39](); setAt[56](); setAt[22](); setAt[47]();
             // setAt[62](); setAt[63](); setAt[30](); setAt[46]();
             // setAt[54](); setAt[55](); setAt[64](); setAt[14](); setAt[23](); setAt[15](); setAt[64](); 
 
+            // setAt[44](); setAt[45](); setAt[19](); setAt[43](); setAt[37](); setAt[29](); setAt[30](); setAt[22](); setAt[38](); setAt[46](); setAt[21](); setAt[12](); setAt[5](); setAt[3](); setAt[13](); setAt[4](); setAt[2](); setAt[26](); setAt[42](); setAt[41](); setAt[20](); setAt[11](); setAt[10](); setAt[18](); setAt[34](); setAt[17](); setAt[6]();
+
+            setAt[44](); setAt[45](); setAt[19](); setAt[43](); setAt[37](); setAt[29](); setAt[30](); setAt[22](); setAt[38](); setAt[46](); setAt[21](); setAt[12](); setAt[5](); setAt[3](); setAt[13](); setAt[4](); setAt[2](); setAt[26](); setAt[42](); setAt[41](); setAt[20](); setAt[11](); setAt[10](); setAt[18](); setAt[34](); setAt[17](); setAt[6](); setAt[9](); setAt[23](); setAt[31](); setAt[25](); setAt[24](); setAt[47](); setAt[33](); setAt[40](); setAt[53](); setAt[61](); setAt[50](); setAt[58](); setAt[55]();
+            // setAt[51](); setAt[60](); setAt[59](); setAt[15](); setAt[62](); setAt[48](); setAt[0](); setAt[32](); setAt[63](); setAt[52](); setAt[1](); setAt[57](); setAt[16](); setAt[8](); setAt[56](); setAt[54](); setAt[39](); setAt[14](); setAt[7](); setAt[64](); setAt[49](); setAt[64](); 
+			// setAt[44](); setAt[43](); setAt[42](); setAt[45](); setAt[29](); setAt[51](); setAt[34](); setAt[37](); setAt[19](); setAt[26](); setAt[38](); setAt[20](); setAt[46](); setAt[52](); setAt[58](); setAt[53](); setAt[61](); setAt[12](); setAt[4](); setAt[21](); setAt[13](); setAt[60](); setAt[10](); setAt[62](); setAt[25](); 
+			
             refreshBoard();
             defaultStatus();
         }
