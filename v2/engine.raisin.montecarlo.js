@@ -34,7 +34,7 @@ Compute= (function() {
             scores[move]= -max;
 
             if (1) {
-                console.log(prefix('OppMax', move) + "max=" + r(max) + " score=" + r(scores[move]));
+                UI.log(prefix('OppMax', move) + "max=" + r(max) + " score=" + r(scores[move]));
             }
         }
     };
@@ -62,7 +62,7 @@ Compute= (function() {
             scores[move]= dd / n;
 
             if (1) {
-                console.log(prefix('Test1', move) + " score=" + r(scores[move]));
+                UI.log(prefix('Test1', move) + " score=" + r(scores[move]));
             }
         }
     };
@@ -91,7 +91,7 @@ Compute= (function() {
 
             scores[move]= -Math.floor(Math.pow(sum, 1/8) * max / oppMoves[movei].length);
 
-            console.log(prefix('CK', move) + ' score=' + scores[move]);
+            UI.log(prefix('CK', move) + ' score=' + scores[move]);
         }
     };
 
@@ -107,7 +107,7 @@ Compute= (function() {
 
     var avgScore= function(opps, oppm) {
 
-        // console.log(opps); console.log(oppm);
+        // UI.log(opps); UI.log(oppm);
 
         var min= 999999999;
         var max= -999999999;
@@ -145,7 +145,7 @@ Compute= (function() {
         var newOppScores= [];
         for (var movei= moves.length; movei--; ) {
             if (scores[moves[movei]] < d) {
-                console.log("reduceMoves: eliminate " + moves[movei] + ", because " + scores[moves[movei]] + ' < ' + d);
+                UI.log("reduceMoves: eliminate " + moves[movei] + ", because " + scores[moves[movei]] + ' < ' + d);
                 continue;
             }
             oppBefore += oppMoves[movei].length;
@@ -182,7 +182,7 @@ Compute= (function() {
             oppScores[movei]= newOppScore;
         }
 
-        console.log("reduceMoves: before=" + before + " after=" + moves.length + " oppBefore=" + oppBefore + " oppAfter=" + oppAfter);
+        UI.log("reduceMoves: before=" + before + " after=" + moves.length + " oppBefore=" + oppBefore + " oppAfter=" + oppAfter);
     };
 
     var run= function (startTime, endTime, initialMoves, doneFn) {
@@ -252,7 +252,7 @@ Compute= (function() {
                             gameState.restore();
                             Core.makeMove(move);
 
-// console.log(oppMoves[move]);
+// UI.log(oppMoves[move]);
 
                             Core.makeMove(oppMove);
 
@@ -292,17 +292,17 @@ Compute= (function() {
 
             moves.sort(function(a, b) { return scores[b] - scores[a]; });
 
-            // console.log(getValidMoves());
+            // UI.log(getValidMoves());
 
             var s= '';
             for (var movei in moves) {
                 s += ' ' + moves[movei] + ':' + (Math.floor(scores[moves[movei]] * 10) / 10);
             }
-            console.log("Scores:" + s);
+            UI.log("Scores:" + s);
 
             doneFn(moves[0], ' Calculated ' + games + ' games.');
 
-            // console.log(scores);
+            // UI.log(scores);
         }
 
         setTimeout(inner, 1);

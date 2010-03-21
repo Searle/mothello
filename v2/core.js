@@ -17,19 +17,6 @@
 //  - JITs may be slower (MoThello is slower on Tamarin and V8)
 // ====================================================================
 
-if ( typeof console == 'undefined' ) {
-
-    // Firebug Feather :-)
-    console= {
-        log: function(value) {
-            var lines= document.getElementById('console').innerHTML.split('<br>');
-            lines.push(value);
-            while (lines.length > 15) lines.shift();
-            document.getElementById('console').innerHTML= lines.join('<br>');
-        }
-    };
-}
-
 var undefined= undefined;       // jQuery does that, because defined variables are faster than not-defined ones.
 
 Core= (function() {
@@ -239,14 +226,14 @@ Core= (function() {
                 // what we need here.
                 posList[pos0]= valid.sort().concat(newpos).concat(flipped); // .concat(set1).concat(set2);
 
-                // console.log(valid);
+                // UI.log(valid);
             }
             if ( pos0 < 65536 ) {
                 setTimeout(nextChunk, 1);
                 return;
             }
             if ( doneFn ) doneFn();
-            console.log("initPosList DONE");
+            UI.log("initPosList DONE");
         }
         setTimeout(nextChunk, 1);
     }
@@ -340,7 +327,7 @@ Core= (function() {
             , " }"
         );
 
-        // console.log(result.join("\n"));
+        // UI.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
@@ -359,7 +346,7 @@ Core= (function() {
             result.push(""
                 , "     if (recalcValid" + recalcVar + " & " + (1 << recalcBit) + ") {"
 
-                // , "         console.log('recalcing: " + recalcVar + ", " + recalcBit + "');"
+                // , "         UI.log('recalcing: " + recalcVar + ", " + recalcBit + "');"
 
                 , "         pos= posList[" + posArray + "[" + move + "] ^ colMask];"
             );
@@ -390,7 +377,7 @@ Core= (function() {
             , "         return validMoves;"
             , "     }"
 
-            // , "     console.log('=====================');"
+            // , "     UI.log('=====================');"
 
             , "     var pos, cell;"
             , "     var result= [];"
@@ -429,7 +416,7 @@ Core= (function() {
             , " }"
         );
 
-        console.log(result.join("\n"));
+        UI.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
@@ -623,7 +610,7 @@ Core= (function() {
             , " }"
         );
 
-        // if (move == 22) { console.log(result.join("\n")); die(); }
+        // if (move == 22) { UI.log(result.join("\n")); die(); }
 
         // Note: blah = new Function( ... ) won't work because we need a closure here.
         eval("setAt[" + move + "]= (" + result.join("\n") + ");");
@@ -708,7 +695,7 @@ Core= (function() {
         return "?"
     }
 
-    // GameState Object
+    // GameState Class
     var GameState= function () {
 
         var capPosH= [], capPosV= [], capPosDiag1= [], capPosDiag2= [];
@@ -808,56 +795,27 @@ Core= (function() {
         return (posH[y] >> (x * 2)) & 3;
     };
 
-    var computeMove= function(UI, tip, doneFn) {
-
-        var doMove= function (move, extraInfo) {
-            if ( !tip ) {
-                setAt[move]();
-                UI.refreshBoard();
-                UI.markCell(move, 'last-move');
-            }
-            else {
-                UI.updateUI();
-                UI.markCell(move, 'tip-move');
-            }
-
-            UI.status('Done.'
-                    // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
-                    + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
-                    + (extraInfo ? ' ' + extraInfo : '')
-                , 3);
-        }
+    var computeMove= function(secs, doneFn) {
 
         var moves= unique(getValidMoves());
+
         if ( moves[0] == 64 ) {
-            UI.status('Pass. I can\'t make a move :-(', 3);
-            if ( !tip ) pass();
-            UI.refreshBoard();
-            if ( doneFn ) doneFn(64);
+            if ( doneFn ) doneFn(64, "Pass. I can\'t make a move :-(");
             return;
         }
 
         if ( moves.length == 1 ) {
-            doMove(moves[0], "Only possible move.");
-            if ( doneFn ) doneFn(moves[0]);
+            if ( doneFn ) doneFn(moves[0], "Making the only possible move.");
             return;
         }
 
-    //        if (moves.length == 1) {
-    //            doMove(moves[0]);
-    //            return 1;
-    //        }
-
-        var secs= document.getElementById('time').value;
         if ( secs < 1 ) secs= 1;
-
-        UI.updateUI();
 
         var startTime= new Date().getTime();
 
         endTime= startTime + secs * 1000;
 
-        var gameState= new Core.GameState();
+        var gameState= new GameState();
         gameState.capture();
 
         Compute.run(startTime, endTime, moves, function (move, comment) {
@@ -865,9 +823,9 @@ Core= (function() {
 
             endTime= 0;
 
-            // TODO: Check Move
-            doMove(move, comment);
-            if ( doneFn ) doneFn(move);
+            // TODO: Check Valid Move
+
+            if ( doneFn ) doneFn(move, comment);
         });
 
     };

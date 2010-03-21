@@ -44,12 +44,12 @@ UI= (function() {
         else {
             status= Core.colName(Core.col()) + '\'s turn. ' + status + '.';
         }
-        console.log(status);
+        UI.log(status);
         document.getElementById('status').innerHTML= status;
     }
 
     var status= function(html, secs, noConsole) {
-        if (!noConsole) console.log('STATUS: ' + html);
+        if (!noConsole) UI.log('STATUS: ' + html);
         document.getElementById('status').innerHTML= html;
         if (hStatusTimer) {
             clearTimeout(hStatusTimer);
@@ -109,11 +109,11 @@ UI= (function() {
                 s += 'move(' + boardLog[i] + '); ';
                 if (i & 1) s += ' ';
             }
-            console.log(s);
+            UI.log(s);
             return;
         }
         if (posXName == 'validMoves') {
-            console.log(getValidMoves());
+            UI.log(getValidMoves());
             return
         }
         var posX;
@@ -121,9 +121,9 @@ UI= (function() {
         if (posXName == 'posV') posX= posV;
         if (posXName == 'posDiag1') posX= posDiag1;
         if (posXName == 'posDiag2') posX= posDiag2;
-        console.log('============= ' + posXName + ' =============');
+        UI.log('============= ' + posXName + ' =============');
         for (var i= 0; i < posX.length; i++) {
-            console.log(pldump(posX[i] ^ colMask));
+            UI.log(pldump(posX[i] ^ colMask));
         }
     }
 
@@ -194,6 +194,36 @@ UI= (function() {
         updateUI();
     }
 
+    var computeMove= function(tip) {
+        Core.computeMove(document.getElementById('time').value, function(move, comment) {
+
+            if ( move == 64 ) {
+                UI.status('Pass. I can\'t make a move :-(', 3);
+                if ( !tip ) pass();
+                UI.refreshBoard();
+                return;
+            }
+            
+            if ( !tip ) {
+                Core.makeMove(move);
+                refreshBoard();
+                markCell(move, 'last-move');
+            }
+            else {
+                updateUI();
+                markCell(move, 'tip-move');
+            }
+
+            status('Done.'
+                // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
+                + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
+                + (comment ? ' ' + comment : '')
+            , 3);
+        });
+        
+        updateUI();
+    }
+
     var clickCell= function (move) {
         if ( Core.computing() || Core.finished() ) return;
 
@@ -218,7 +248,7 @@ UI= (function() {
         markCell(move, 'last-move');
 
         if ( computerCol & Core.col() ) {
-            Core.computeMove(UI);
+            computeMove();
         }
     }
 
@@ -230,14 +260,14 @@ UI= (function() {
         defaultStatus();
 
         if ( computerCol & Core.col() ) {
-            Core.computeMove(UI);
+            computeMove();
         }
     }
 
     var clickUndo= function() {
         if ( computing() ) return;
         if ( !Core.started() ) {
-            console.log("CAN'T UNDO");
+            UI.log("CAN'T UNDO");
             return;
         }
 
@@ -263,7 +293,7 @@ UI= (function() {
         defaultStatus();
 
         if (computerCol & Core.col()) {
-            Core.computeMove(UI);
+            computeMove();
         }
     }
 
@@ -271,7 +301,7 @@ UI= (function() {
         if ( Core.computing() || Core.finished() ) return;
 
         refreshBoard();
-        Core.computeMove(UI, 1);
+        computeMove(true);
     }
 
     var clickStop= function() {
@@ -295,7 +325,7 @@ UI= (function() {
     var clickCloseSettings= function() {
         document.getElementById('settings').style.display= 'none';
         if ( !Core.computing() && (computerCol & Core.col()) ) {
-            Core.computeMove(UI);
+            computeMove();
         }
     }
 
@@ -311,9 +341,12 @@ UI= (function() {
 
         var wait= function() {
             if ( !Core.computing() ) {
-                if ( !Core.computeMove(UI) && !Core.computeMove(UI) ) {
+            
+                // FIXME: computeMove wartet nicht!
+                
+                if ( !computeMove() && !computeMove() ) {
                     computerCol= oldComputerCol;
-                    console.log("GAME IS OVER");
+                    UI.log("GAME IS OVER");
                     defaultStatus();
 
                     score[diff > 0 ? 0 : 1]++;
@@ -331,6 +364,21 @@ UI= (function() {
 
     var init= function() {
         printBoard();
+    }
+
+    var log;
+
+    if ( typeof console == 'undefined' ) {
+        log= function() {
+            var value= Array.prototype.slice.call(arguments).join(" ");
+            var lines= document.getElementById('console').innerHTML.split('<br>');
+            lines.push(value);
+            while (lines.length > 15) lines.shift();
+            document.getElementById('console').innerHTML= lines.join('<br>');
+        }
+    }
+    else {
+        log= console.log;
     }
 
     return {
@@ -351,6 +399,7 @@ UI= (function() {
         status: status,
         defaultStatus: defaultStatus,
         
+        log: log,
         refreshBoard: refreshBoard, // Callback from Core
         updateUI: updateUI,  // Callback from Core
         markCell: markCell,  // Callback from Core
