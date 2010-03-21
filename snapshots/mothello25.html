@@ -8,7 +8,7 @@
     //  http://www.opensource.org/licenses/artistic-license-2.0.php
     // ====================================================================
 
-    if (!console) {
+    if (typeof console == 'undefined') {
 
         // Firebug Feather :-)
         console= {
@@ -466,6 +466,7 @@
     function computeMove(tip) {
         var moves= getValidMoves();
         if (moves.length == 0) {
+            status('Pass. I can\'t make a move :-(', 3);
             pass();
             return;
         }
@@ -473,16 +474,7 @@
         var secs= document.getElementById('time').value;
         if (secs < 1) secs= 1;
 
-        endTime= new Date().getTime() + secs * 1000;
-        var resortTime= new Date().getTime() + secs * 666;
-
-        var moveScore= {};
-        for (var movei in moves) {
-            moveScore[moves[movei]]= 0;
-        }
-
         var games= 0;
-        var dots= '';
 
         var doMove= function(move) {
             if (!tip) {
@@ -504,6 +496,16 @@
             doMove(moves[0]);
             return;
         }
+
+        endTime= new Date().getTime() + secs * 1000;
+        var resortTime= new Date().getTime() + secs * 666;
+
+        var moveScore= {};
+        for (var movei in moves) {
+            moveScore[moves[movei]]= 0;
+        }
+
+        var dots= '';
 
         var inner= function() {
 
@@ -713,7 +715,7 @@
             if (moves[movei] == move) { ok= 1; break; }
         }
         if (!ok) {
-            status("Not a valid move!", 2);
+            status("Not a valid move!" + move, 2);
             return;
         }
         setAt(move);
@@ -857,14 +859,20 @@
     }
     #head {
         background-color: black;        
-        padding: 4px 20px;
+        padding: 10px 20px ;
         margin: 0 0 20px 0;
         color: #FFF;
+        text-align: right;
     }
-    #head span {
-        float: right;
+    #head h1 {
+        float: left;
+        text-weight: bold;
+        font-size: 100%;
+        padding: 0;
+        margin: 0;
+        color: #F2D4C0;
     }
-    #head span a {
+    #head a {
         color: #FFF;
     }
     #body {
@@ -873,8 +881,8 @@
 </style>
 <body onload="doOnload()">
     <div id="head">
-        <span>(c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a></span>
-        MoReversi
+        <h1>MoReversi</h1>
+        (c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a>
     </div>
     <div id="body">
         <div>
@@ -882,7 +890,7 @@
             <a class="button" href="javascript:clickUndo();">Undo</a>
             <a class="button" href="javascript:clickPass();">Pass</a>
             <a class="button" href="javascript:clickTip();">Tip</a>
-            Time: <input id="time" size="2" value="5">s
+            Time: <input id="time" size="2" value="8">s
         
             <span class="debug">
                 <a class="button" href="javascript:clickDump('posH');">posH</a>
