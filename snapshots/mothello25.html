@@ -1,8 +1,8 @@
 <script>
 
-    console= null;
-
     if (!console) {
+
+        // Firebug Feather :-)
         console= {
             log: function(value) {
                 var lines= document.getElementById('console').innerHTML.split('<br>');
@@ -33,6 +33,10 @@
 
     var getValidMoves;
     var validMovesCheck;
+
+    var hStatusTimer= null;
+
+    var endTime= 0;
 
     function initBoard() {
         posH= [];
@@ -74,6 +78,29 @@
     //  OUTPUT
     // ====================================================================
 
+    // See: http://de.wikipedia.org/wiki/Benutzer:Buncic/Unicode/Geometrische_Formen
+    function stone(col) {
+        return ' \u25CB\u25CF '.substr(col & 3, 1);
+    }
+
+    function stoneBg(col) {
+        return ' \u25CF  '.substr(col & 3, 1);
+    }
+
+    function status(html, secs) {
+        console.log('STATUS: ' + html);
+        document.getElementById('status').innerHTML= html;
+        if (hStatusTimer) {
+            clearTimeout(hStatusTimer);
+            hStatusTimer= null;
+        }
+        if (secs) {
+            hStatusTimer= setTimeout(function() {
+                document.getElementById('status').innerHTML= 'Next move: ' + stone(col);
+            }, secs * 1000);
+        }
+    }
+
     function printBoard() {
 
         var html= '<table>';
@@ -97,7 +124,11 @@
             var pos= posH[y];
             for (var x= 0; x < 8; x++) {
                 (document.getElementById('cell' + i) || {}).innerHTML=
-                    '<p class="num">' + i + '</p>' + '.OX,'.substr(pos & 3, 1);
+                    '<p class="num">' + i + '</p>'
+                    + '<div class="stone">'
+                    +     '<div class="bg">' + stoneBg(pos) + '</div>'
+                    +     '<div>' + stone(pos) + '</div>'
+                    + '</div>';
                 pos >>= 2;
                 i++;
             }
@@ -117,27 +148,42 @@
     }
 
     // ====================================================================
+    //  Debugging
     // ====================================================================
 
-    function Y(move, pos0) {
+    function pldump(pos, movei) {
 
-        var pos= pos0 >> (move * 2);
-        var j= 8 - move;
-        var has2= 0;
-        while (j--) {
-            if ((pos & 3) == 1) break;
-            if ((pos & 3) == 2) { has2++; continue; }
-            if (!has2) break;
-            console.log("left=" + has2);           
+    // console.log(pos);
+    // console.log(posList[pos]);
+
+        var newpos= movei == undefined
+            ? pos
+            : posList[pos][3 + movei];
+        var i= 8;
+        var result= movei + ': ';
+        while (i--) {
+            result += stone(newpos ^ colMask);
+            newpos >>= 2;
         }
-        
-
+        return result + ' ' + pos;
     }
 
-    function X(i) {
-        return posList[i];
+    function clickDump(posXName) {
+        if (posXName == 'validMoves') {
+            console.log(getValidMoves());
+            return
+        }
+        var posX;
+        if (posXName == 'posH') posX= posH;
+        if (posXName == 'posV') posX= posV;
+        if (posXName == 'posDiag1') posX= posDiag1;
+        if (posXName == 'posDiag2') posX= posDiag2;
+        console.log('============= ' + posXName + ' =============');
+        for (var i= 0; i < posX.length; i++) {
+            console.log(pldump(posX[i] ^ colMask));
+        }
     }
-    
+
     // ====================================================================
     // ====================================================================
 
@@ -183,8 +229,7 @@
                 had1pos= wantpos= -1;
                 valid= [ 9, 9, 9 ];
                 newpos= [ pos0, pos0, pos0, pos0, pos0, pos0, pos0, pos0 ];
-                flipped= [ 0, 0, 0, 0, 0, 0, 0, 0 ];
-                flipped2= [ 0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0 ];
+                flipped= [ 0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0 ];
                 validi= 0;
     
                 for (j= 0; j < 8; j++) {
@@ -198,8 +243,7 @@
                                 newpos[wantpos] ^=
                                     ~(-1 << (j + j - wantpos - wantpos - 2))
                                     << (wantpos + wantpos + 2);
-                                flipped[wantpos] += j - wantpos -1;
-                                flipped2[wantpos + wantpos + 1]= j - wantpos -1; // TODO
+                                flipped[wantpos + wantpos + 1]= j - wantpos -1;
                             }
                             wantpos= -1;
                         }
@@ -223,8 +267,7 @@
                             newpos[j] ^=
                                 ~(-1 << (j + j - had1pos - had1pos))
                                 << (had1pos + had1pos);
-                            flipped[j] += j - had1pos;
-                            flipped2[j + j]= j - had1pos; // TODO
+                            flipped[j + j]= j - had1pos;
                         }
                         wantpos= j;
                         had= want1= want2= 0;
@@ -238,7 +281,7 @@
 
                 // Additionally to it's purpose, "concat" clones the array, which is
                 // what we need here.
-                posList[pos0]= valid.sort().reverse().concat(newpos).concat(flipped).concat(flipped2);
+                posList[pos0]= valid.sort().reverse().concat(newpos).concat(flipped);
 
                 // console.log(valid);
             }
@@ -252,47 +295,8 @@
         setTimeout(nextChunk, 1);
     }
 
-    function getValidMoves_old() {
-
-        var check= validMovesCheck.concat();
-        var result= [];
-
-        var checkValid= function(move, fvv, label, base, mul, len) {
-            var valid= posList[fvv ^ colMask];
-            var i= 3;
-            while (i--) {
-
-                if (valid[i] >= len) break;
-
-                var cell= base + mul * valid[i];
-                if (check[cell]) break;
-
-                check[cell]= 1;
-                result[result.length]= cell;    // Faster than push, according to the net
-                
-                // console.log(label + ": valid(" + move + "," + '.OX'.substr(col, 1) + ")="
-                //     + cell
-                //     + ' (base=' + base + ' valid[' + i + ']=' + valid[i] + ')'
-                // );
-            }
-        }
-
-        for (var i= 0; i < 8; i++) {
-            checkValid(i, posH[i],  'V  ', i * 8, 1, 8);
-            checkValid(i, posV[i],  'H  ', i,     8, 8);
-        }
-        for (var i= 2; i < 8; i++) {
-            checkValid(i, posDiag1[i], 'D1A', 7 - i, 9,  i);
-            checkValid(i, posDiag2[i], 'D2A', i * 8, -7, i);
-        }
-        for (var i= 8; i < 13; i++) {
-            checkValid(i, posDiag1[i], 'D1B', (i - 7) * 8, 9,  15 - i);
-            checkValid(i, posDiag2[i], 'D2B', 49 + i,      -7, 15 - i);
-        }
-        
-        return result;
-    }
-
+    // Builds an optimized function that calculated the valid moves.
+    // The resulting function contains no loops, but too many ifs :-/
     function makeGetValidMoves() {
 
         var result= [];
@@ -351,18 +355,7 @@
             , "\n   }"
         );
 
-// result= ["\n  function(){\n  return 3;\n }"];
-//        result= result.join('');
-
-        result= "getValidMoves= (" + result.join('') + ");";
-
-//         console.log(result);
-
-//        eval('bb=(function(){ return 3; });');
-
-        eval(result);
-
-        // getValidMoves= eval(result).f;
+        eval("getValidMoves= (" + result.join('') + ");");
     }
 
     function markCells(cells) {
@@ -370,39 +363,10 @@
         for (var i in cells) markCell(cells[i], 'valid-move');
     }
 
-    function pldump(pos, movei) {
-
-    // console.log(pos);
-    // console.log(posList[pos]);
-
-        var newpos= movei == undefined
-            ? pos
-            : posList[pos][3 + movei];
-        var i= 8;
-        var result= movei + ': ';
-        while (i--) {
-            result += '.OX,'.substr((newpos ^ colMask) & 3, 1);
-            newpos >>= 2;
-        }
-        return result + ' ' + pos;
-    }
-
-    function clickDump(posXName) {
-        var posX;
-        if (posXName == 'posH') posX= posH;
-        if (posXName == 'posV') posX= posV;
-        if (posXName == 'posDiag1') posX= posDiag1;
-        if (posXName == 'posDiag2') posX= posDiag2;
-        console.log('============= ' + posXName + ' =============');
-        for (var i= 0; i < posX.length; i++) {
-            console.log(pldump(posX[i] ^ colMask));
-        }
-    }
-
     function setAt(move) {
         var movey= move >> 3;
         var movex= move & 7;
-        var pos, i;
+        var pos, qi;
 
         var movex2, movey2;
         var movexd, moveyd;
@@ -452,30 +416,30 @@
         pos= posList[posH[movey] ^ colMask];
         posH[movey] |= col << movex2;
 
-        if (qi= pos[movex2 + 19]) quickSetAt(-1, 0);
-        if (qi= pos[movex2 + 20]) quickSetAt( 1, 0);
+        if (qi= pos[movex2 + 11]) quickSetAt(-1, 0);
+        if (qi= pos[movex2 + 12]) quickSetAt( 1, 0);
 
         pos= posList[posV[movex] ^ colMask];
         posV[movex] |= col << movey2;
 
-        if (qi= pos[movey2 + 19]) quickSetAt(0, -1);
-        if (qi= pos[movey2 + 20]) quickSetAt(0,  1);
+        if (qi= pos[movey2 + 11]) quickSetAt(0, -1);
+        if (qi= pos[movey2 + 12]) quickSetAt(0,  1);
 
         movexd= movex >= movey ? movey2 : movex2;
         moveyd= movey - movex + 7;
         pos= posList[posDiag1[moveyd] ^ colMask];
         posDiag1[moveyd] |= col << movexd;
 
-        if (qi= pos[movexd + 19]) quickSetAt(-1, -1);
-        if (qi= pos[movexd + 20]) quickSetAt( 1,  1);
+        if (qi= pos[movexd + 11]) quickSetAt(-1, -1);
+        if (qi= pos[movexd + 12]) quickSetAt( 1,  1);
 
         movexd= (7 - movex) >= movey ? movex2 : 14 - movey2;
         moveyd= movey + movex;
         pos= posList[posDiag2[moveyd] ^ colMask];
         posDiag2[moveyd] |= col << movexd;
 
-        if (qi= pos[movexd + 19]) quickSetAt(-1,  1);
-        if (qi= pos[movexd + 20]) quickSetAt( 1, -1);
+        if (qi= pos[movexd + 11]) quickSetAt(-1,  1);
+        if (qi= pos[movexd + 12]) quickSetAt( 1, -1);
 
         col= 3 - col;
         colMask= 65535 - colMask;
@@ -485,17 +449,18 @@
     }
 
     function pass() {
+        if (boardLog.length >= 64) return;
         col= 3 - col;
         colMask= 65535 - colMask;
         colDiff= -colDiff;
     }
 
     // slow! but doesn't matter, not used by computer player
-    function undo() {
+    function undo(count) {
         var flog2= boardLog.concat(); // clone
 
         initBoard();        
-        for (var i= 4; i < flog2.length - 1; i++) {
+        for (var i= 4; i < flog2.length - count; i++) {
             setAt(flog2[i]);
         }
     }
@@ -505,7 +470,7 @@
             console.log("CAN'T UNDO");
             return;
         }
-        undo();
+        undo(2);
         refreshBoard();
     }
   
@@ -517,13 +482,32 @@
     }
   
     function clickCell(move) {
+        if (endTime) {
+            status("Please wait until the computer made it's move!");
+            return;
+        }
         if (colAtMove(move)) {
-            console.log("CELL ALREADY TAKEN");
+            status("Cell is already taken!", 3);
+            return;
+        }
+        var moves= getValidMoves();
+        var ok= 0;
+        for (var movei in moves) {
+            if (moves[movei] == move) { ok= 1; break; }
+        }
+        if (!ok) {
+            status("Not a valid move!", 2);
             return;
         }
         setAt(move);
         refreshBoard();
-        setTimeout(function() { computeMove(); }, 1);
+        setTimeout(function() { computeMove(); }, 100);
+    }
+
+    function clickPass() {
+        pass();
+        refreshBoard();
+        setTimeout(function() { computeMove(); }, 100);
     }
 
     function autoPlay() {
@@ -544,74 +528,153 @@
         refreshBoard();
     }
 
+    var capPosH= [], capPosV= [], capPosDiag1= [], capPosDiag2= [], capBoardLog= [];
+    var capCol, capColMask, capColDiff, capDiff;
+
     function captureBoard() {
-        return {
-            boardLog: boardLog.concat(),
-            col: col,
-            colMask: colMask,
-            colDiff: colDiff,
-            diff: diff,
-            posH: posH.concat(),
-            posV: posV.concat(),
-            posDiag1: posDiag1.concat(),
-            posDiag2: posDiag2.concat()
-        };
+
+        for (var y= 8; y--; ) {
+            capPosH[y]= posH[y];
+            capPosV[y]= posV[y];
+        }
+
+        for (var y= 15; y--; ) {
+            capPosDiag1[y]= posDiag1[y];
+            capPosDiag2[y]= posDiag2[y];
+        }
+
+        capBoardLog.splice(boardLog.length, 64);
+        
+        for (var i= boardLog.length; i--; ) {
+            capBoardLog[i]= boardLog[i];
+        }
+        
+        capCol= col;
+        capColMask= colMask;
+        capColDiff= colDiff;
+        capDiff= diff;
+        
+        return;
+
+        // Originally it was like this, but concat seemes to have
+        // an insane implementation in FF3, it swallows memory faster
+        // that you can look.
+        /*
+            return {
+                boardLog: boardLog.concat(),
+                col: col,
+                colMask: colMask,
+                colDiff: colDiff,
+                diff: diff,
+                posH: posH.concat(),
+                posV: posV.concat(),
+                posDiag1: posDiag1.concat(),
+                posDiag2: posDiag2.concat()
+            };
+        */
     }
 
-    function restoreBoard(capture) {
-        boardLog= capture.boardLog;
-        col= capture.col;
-        colMask= capture.colMask;
-        colDiff= capture.colDiff;
-        diff= capture.diff;
-        posH= capture.posH;
-        posV= capture.posV;
-        posDiag1= capture.posDiag1;
-        posDiag2= capture.posDiag2;
+    function restoreBoard() {
+
+        col= capCol;
+        colMask= capColMask;
+        colDiff= capColDiff;
+        diff= capDiff;
+
+        var tmp;
+        
+        tmp= boardLog;
+        boardLog= capBoardLog;
+        capBoardLog= tmp;
+
+        tmp= posH;
+        posH= capPosH;
+        capPosH= tmp;
+
+        tmp= posV;
+        posV= capPosV;
+        capPosV= tmp;
+
+        tmp= posDiag1;
+        posDiag1= capPosDiag1;
+        capPosDiag1= tmp;
+
+        tmp= posDiag2;
+        posDiag2= capPosDiag2;
+        capPosDiag2= tmp;
     }
 
     function computeMove() {
         var moves= getValidMoves();
-        if (moves.length == 0) return;
+        if (moves.length == 0) {
+            pass();
+            return;
+        }
+
+        var secs= document.getElementById('time').value;
+        if (secs < 1) secs= 1;
+
+        endTime= new Date().getTime() + secs * 1000;
 
         var moveScore= {};
         for (var movei in moves) {
             moveScore[moves[movei]]= 0;
         }
 
-        var endTime= new Date().getTime() + 5 * 1000;
         var games= 0;
+        var dots= '';
 
-        while (new Date().getTime() < endTime) {
-            console.log("Thinking...");
-            for (var n= 0; n < 100; n++) {
-                for (var movei in moves) {
-                    var capture= captureBoard();
-                    setAt(moves[movei]);
-                    autoPlay();
-                    // console.log(capture.col);
-                    if (capture.col == 1 && moveScore[moves[movei]] < diff) moveScore[moves[movei]]= diff;
-                    if (capture.col == 2 && moveScore[moves[movei]] > diff) moveScore[moves[movei]]= diff;
-                    restoreBoard(capture);
-                    games++;
+        var inner= function() {
+
+            if (new Date().getTime() < endTime) {
+
+                status("Thinking" + dots);
+                dots += '.';
+                for (var n= 0; n < 20; n++) {
+                    for (var movei in moves) {
+                        captureBoard();
+                        setAt(moves[movei]);
+                        autoPlay();
+                        // console.log(capture.col);
+
+                        if (capCol == 1) {
+                            if (diff > 0) moveScore[moves[movei]] += 2;
+                            if (diff < 0) moveScore[moves[movei]] -= 3;
+                        }
+                        else {
+                            if (diff < 0) moveScore[moves[movei]] += 2;
+                            if (diff > 0) moveScore[moves[movei]] -= 3;
+                        }
+
+                        restoreBoard();
+                        games++;
+                    }
                 }
+                setTimeout(inner, 10);
+                return;
             }
+
+            endTime= 0;
+    
+            // console.log("col=" + col);
+            moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
+    
+            var move= moves[0];
+            setAt(move);
+            refreshBoard();
+
+            markCell(move, 'last-move');
+    
+            status('Done.'
+                    + ' My move is (' + move + ') ' + (move & 7) + ',' + (move >> 3) + '.'
+                    + ' Calculated ' + games + ' games.'
+                , 3);
+            
+            // console.log(moves);
+            // console.log(moveScore);
         }
 
-        console.log('Done... (' + games + ' games)');
-        
-        // console.log("col=" + col);
-        if (col == 1) moves.sort(function(a, b) { return moveScore[a] - moveScore[b]; });
-        if (col == 2) moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
-
-        var move= moves[0];
-        setAt(move);
-        refreshBoard();
-
-        console.log('Moved: (' + move + ') ' + (move & 3) + ',' + (move >> 3));
-        
-        // console.log(moves);
-        // console.log(moveScore);
+        setTimeout(inner, 10);
     }
 
     function doOnload() {
@@ -626,23 +689,25 @@
             }
             initBoard();
             printBoard();
-
-            // console.log(getValidMoves2());
-
         }
         setTimeout(ready, 100);
     }
 
 </script>
 <style>
+    body {
+        font-family: Tahoma, sans-serif;
+    }
     #board table {
-        border: solid 1px #000;
+        border-collapse: collapse;
+        border: solid 6px #988579;
+        background-color: #DABFAD;
     }
     #board table tr {
-        vertical-align: center;
+        vertical-align: top;
     }
     #board table td {
-        border: solid 1px #000;
+        border: solid 3px #B8A192;
         width: 40px;
         height: 40px;
         text-align: center;
@@ -654,8 +719,27 @@
         margin: 0;
         padding: 0;
     }
+    #board .stone {
+        position: relative;
+    }
+    #board .stone div {
+        width: 40px;
+        text-align: center;
+        position: absolute;
+        top: -25px;
+        font-size: 300%;
+        margin: 0;
+        padding: 0;
+    }
+    #board .stone .bg {
+        color: #fff;
+    }
     #board .valid-move {
-        background-color: yellow;
+        background-color: #E5E052;
+    }
+    /* green: 52E574 red: E55252 */
+    #board .last-move {
+        background-color: #52C1E5;
     }
     #console {
         padding: 20px;
@@ -665,12 +749,17 @@
 </style>
 <body onload="doOnload()">
     <a href="javascript:clickUndo();">UNDO</a>
+    <a href="javascript:clickPass();">PASS</a>
     <a href="javascript:clickDump('posH');">posH</a>
     <a href="javascript:clickDump('posV');">posV</a>
     <a href="javascript:clickDump('posDiag1');">posDiag1</a>
     <a href="javascript:clickDump('posDiag2');">posDiag2</a>
+    <a href="javascript:clickDump('validMoves');">validMoves</a>
     <a href="javascript:clickAutoPlay();">AUTOPLAY</a>
     <a href="javascript:computeMove();">computeMove</a>
+    Time: <input id="time" size="2" value="5">
+    <hr>
+    <div id="status">&nbsp;</div>
     <hr>
     <div id="board"></div>
     <div id="console"></div>
