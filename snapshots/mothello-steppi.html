@@ -85,6 +85,7 @@
         for (var i= 0; i < 64; i++) {
             cellScore[i]= 2;
         }
+
         for (var i= 0; i < 8; i++) {
             cellScore[i] += 2;
             cellScore[i * 8] += 2;
@@ -588,7 +589,7 @@
             , 3);
     }
 
-    function computeMove(tip) {
+    function computeMoveOld(tip) {
         var moves= unique(getValidMoves());
         if (moves[0] == 64) {
             status('Pass. I can\'t make a move :-(', 3);
@@ -922,10 +923,12 @@
 
         var indent= '';
 
-        var nodeStr= function(i, node, prefix) {
+        var nodeStr= function(i, i2, node, prefix) {
+            var link= "javascript:console.log(_inspectorNode(" + i2 + "))";
             return indent + prefix + "[" + i + ":"
-                + " move=" + node.move
-                + " prob=" + (Math.round((0 + node.prob) * 10000) / 10000)
+                + " move=<a href=\"" + link + "\">" + node.move + "</a>"
+                + (node.prob ? " prob=" + (Math.round((node.prob) * 10000) / 10000) : "")
+                + (node.minprob ? " minprob=" + (Math.round(node.minprob * 10000) / 10000) : "")
                 + " nb=" + node.nb
                 + "]";
         }
@@ -937,28 +940,40 @@
         for (var i in inspectNodes) {
             node= node.childNodes[inspectNodes[i]];
             var link= "<a href='javascript:_inspectorSetLevel(" + i + ")'>[-]</a>";
-            html += nodeStr(inspectNodes[i], node, link + "&nbsp;");
+            html += nodeStr(inspectNodes[i], i, node, link + "&nbsp;");
             html += ":<br />";
             indent += "&nbsp;&nbsp;";
         }
 
         node.childNodes.sort(function(a, b) {
-            return b.prob - a.prob;
+            return (b.minprob || b.prob) - (a.minprob || a.prob);
         });
 
         for (var j in node.childNodes) {
             var childNode= node.childNodes[j];
-            if (childNode.childNodes) {
-                var link= "[+]";
-                if (childNode.childNodes && childNode.childNodes.length) {
-                    link= "<a href='javascript:_inspectorAppend(" + j + ")'>" + link + "</a>";
-                }
-                html += nodeStr(j, childNode, link + "&nbsp;");
-                html += "<br />";
+            var link= "[+]";
+            if (childNode.childNodes && childNode.childNodes.length) {
+                link= "<a href='javascript:_inspectorAppend(" + j + ")'>" + link + "</a>";
             }
+            html += nodeStr(j, ~j, childNode, link + "&nbsp;");
+            html += "<br />";
         }
 
         document.getElementById("inspector").innerHTML= html;
+    }
+
+    function _inspectorChildNode(n) {
+        var node= inspectRootNode;
+        var i= 0;
+        while (n--) node= node.childNodes[inspectNodes[i++]];
+        return node;
+    }
+
+    function _inspectorNode(n) {
+        if (n < 0) {
+            return _inspectorChildNode(inspectNodes.length).childNodes[~n];
+        }
+        return _inspectorChildNode(n + 1);
     }
 
     function _inspectorSetLevel(n) {
@@ -982,7 +997,7 @@
 
 
 
-    function computeMove(tip) {
+    function computeMoveUCT(tip) {
         var moves= unique(getValidMoves());
         if (moves[0] == 64) {
             status('Pass. I can\'t make a move :-(', 3);
@@ -1022,11 +1037,11 @@
             }
 
             // Math.log ist ln
-            var dividend= 4 * Math.log(nb); //  / Math.log(10);
+            var dividend= 2 * Math.log(nb); //  / Math.log(10);
             // var dividend= Math.log(nb) / 5;
 
             var maxv= -100000000000;
-            var maxi= 0;
+            var maxi= -1;
             i= childNodes.length;
             while (i--) {
                 var childNode= childNodes[i];
@@ -1034,7 +1049,7 @@
                 if (childNode.nb == 0) {
                     return childNode;
                 }
-
+                
                 // Valkyria:
                 // winrate := next.Wins/next.Visits;
                 // uct := UCTK*Sqrt(ln(n.Visits)/(5*next.Visits));
@@ -1044,7 +1059,7 @@
                 childNode.prob= childNode.value / childNode.nb;
                 var v= Math.sqrt(dividend / childNode.nb) + childNode.prob;
 
-                // Anderes Ergebnis! Warum?
+                // Anderes Ergebnis! Warum? Und warum laesst sich der Satz des Pythagoras nicht als a + b = c schreiben? :)
                 // var v= dividend / childNode.nb + childNode.prob * childNode.prob;
 
                 if (v > maxv) {
@@ -1052,23 +1067,31 @@
                     maxi= i;
                 }
             }
+            if (maxi < 0) {
+                return null;
+            }
             return childNodes[maxi];
         }
 
         function playOneSequence() {
 
             restoreBoard();
-
             var nodes= [ rootNode ];
             var nodei = 0;
             while (nodes[nodei].childNodes) {
-                nodes[nodei + 1]= descendByUCB1(nodes[nodei]);
+                var node= descendByUCB1(nodes[nodei]);
+                if (node == null) {
+                    // this should not happen!
+                    // console.warn("No valid child move found!");
+                    return false;
+                }
+                nodes[nodei + 1]= node;
                 setAt[nodes[nodei + 1].move]();
                 nodei++;
             }
 
-            var nextMoves= getValidMoves();
             var node= nodes[nodei];
+            var nextMoves= getValidMoves();
 
             var uniqueNextMoves= unique(nextMoves);
 
@@ -1080,25 +1103,26 @@
                     // childNodes: null,
                     // validMoves: nextMoves0,
                     value: 0,
-                    nb: 0
+                    nb: 0,
                 };
             }
 
-var xx= 0;
+            // var xx= 0;
 
             // Play random game
             while (true) {
 
-if (xx++ > 300) {
-    break;
-}
+                // if (xx++ > 300) {
+                //     console.warn("Break in Random Game after 300 loops");
+                //     break;
+                // }
 
                 if (nextMoves[0] == 64) {
                     pass();
                     nextMoves= getValidMoves();
                     if (nextMoves[0] == 64) break;
                 }
-                nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
+                var nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
                 setAt[nextMove]();
                 nextMoves= getValidMoves();
             }
@@ -1106,15 +1130,18 @@ if (xx++ > 300) {
             // richtig!
             var value= (diff > 0 ? 1 : 0) ^ ((capCol + nodei) & 1);
 
-            node.value= value;
+            node.prob= node.value= value;
             node.nb= 1;
+            
 
             // Update values
-            for ( ; --nodei >= 0; ) {
+            while (nodei--) {
                 value= 1 - value;
                 nodes[nodei].value += value;
                 nodes[nodei].nb++;
+                nodes[nodei].prob= nodes[nodei].value / nodes[nodei].nb;
             }
+            return true;
         }
 
         var games= 0;
@@ -1134,18 +1161,34 @@ if (xx++ > 300) {
                 return;
             }
 
-            var resultNode= rootNode.childNodes[0];
-            for (var i= rootNode.childNodes.length; i-- > 1; ) {
+            var resultNode= null;
+            var minprob= 0;
+            for (var i= rootNode.childNodes.length; i--; ) {
 
-                console.warn("Move: " + rootNode.childNodes[i].move + " Prob:" + rootNode.childNodes[i].prob);
-                console.log(rootNode.childNodes[i]);
+                var childNode= rootNode.childNodes[i];
 
-                if (resultNode.prob < rootNode.childNodes[i].prob) {
-                    resultNode= rootNode.childNodes[i];
+                // find child's child (that's our opponent's turn) with highest probability to win
+                var maxprob= childNode.childNodes ? childNode.childNodes[0].prob : (childNode.value / childNode.nb);
+                for (var j= childNode.childNodes.length; j-- > 1; ) {
+                    if (maxprob < childNode.childNodes[j].prob) {
+                        maxprob= childNode.childNodes[j].prob;
+                    }
+                }
+
+                // our probability to win is 1 - the highest prob. to win for our opponent (supposed to draw clever)
+                childNode.minprob= 1 - maxprob;
+
+                console.warn("Move: " + childNode.move + " Prob:" + childNode.prob + " MinProb:" + childNode.minprob);
+                console.log(childNode);
+
+                // let's try the move, where our opponents best choice is the lowest
+                if (minprob < childNode.minprob) {
+                    resultNode= childNode;
+                    minprob= childNode.minprob;
                 }
             }
 
-            console.warn("I'll make Move: " + resultNode.move + " Prob:" + resultNode.prob);
+            console.warn("I'll make Move: " + resultNode.move + " Prob:" + resultNode.prob + " MinChildProb:" + resultNode.minprob);
 
             // var resultNode= descendByUCB1(rootNode);
             // playOneSequence();
@@ -1162,10 +1205,10 @@ if (xx++ > 300) {
 
     }
 
-
-
-
-
+    function computeMove(tip) {
+        if (col == 1) return computeMoveUCT(tip);
+        return computeMoveOld(tip);
+    }
 
     // ====================================================================
     //  Output
@@ -1676,7 +1719,7 @@ if (xx++ > 300) {
         position: absolute;
         top: 8em;
         left: 25em;
-        width: 400px;
+        width: 500px;
         height: auto;
         border: 1px solid #666;
         margin: 5px;
