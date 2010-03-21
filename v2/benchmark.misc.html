@@ -1,0 +1,49 @@
+
+Benchmark misc...
+
+<script type="text/javascript" src="benchmark.js"></script>
+
+<script>
+
+var count= 10000000;
+
+test.closureVar= function() {
+        var a2= 42;
+
+        (function() {
+            for ( var i= count; i--; ) {
+                a2= i;
+            }
+        })();
+};
+
+test.closureArrayAccess= function() {
+        var a= [ 1, 2, 3, 4, 5, 6 ];
+
+        (function() {
+            for ( var i= count; i--; ) {
+                a[2]= i;
+            }
+        })();
+};
+
+test.localVar= function() {
+        var a2= 42;
+        for ( var i= count; i--; ) {
+            a2= i;
+        }
+};
+
+test.localArrayAccess= function() {
+        var a= [ 1, 2, 3, 4, 5, 6 ];
+
+        for ( var i= count; i--; ) {
+            a[2]= i;
+        }
+};
+
+// ---------------------
+
+Benchmark.on(1);
+
+</script>

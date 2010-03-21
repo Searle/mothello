@@ -190,10 +190,10 @@ Compute= (function() {
         // Start removing stupid moves from the list of considered moves after 1/3 of the time
         var cleanupTime= startTime + (endTime - startTime) * 333;
 
-        var capture= new Core.Capture();
+        var gameState= new Core.GameState();
         var col= Core.col();
 
-        capture.capture();
+        gameState.capture();
 
         moves= initialMoves;
 
@@ -210,7 +210,7 @@ Compute= (function() {
             Core.makeMove(move);
             oppMoves[movei]= Core.getUniqueValidMoves();
             oppScores[movei]= Core.zeroes(oppMoves[movei].length);
-            capture.restore();
+            gameState.restore();
         }
 
         var dots= '';
@@ -249,7 +249,7 @@ Compute= (function() {
                         for (oppMovei in oppMoves[movei]) {
                             oppMove= oppMoves[movei][oppMovei];
 
-                            capture.restore();
+                            gameState.restore();
                             Core.makeMove(move);
 
 // console.log(oppMoves[move]);
@@ -286,7 +286,7 @@ Compute= (function() {
                 return;
             }
 
-            capture.restore();
+            gameState.restore();
 
             calcMoveScore();
 

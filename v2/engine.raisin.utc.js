@@ -93,6 +93,8 @@ Reversi.addEngine({
             nb: 0
         };
 
+        // var gameState= new Core.GameState();
+        // gameState.capture();
         captureBoard();
 
         var INFINITY= 100000000000;

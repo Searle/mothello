@@ -17,7 +17,7 @@
 //  - JITs may be slower (MoThello is slower on Tamarin and V8)
 // ====================================================================
 
-if (typeof console == 'undefined') {
+if ( typeof console == 'undefined' ) {
 
     // Firebug Feather :-)
     console= {
@@ -30,7 +30,7 @@ if (typeof console == 'undefined') {
     };
 }
 
-var undefined= undefined;   // jQuery does that. So it's correct. qed.
+var undefined= undefined;       // jQuery does that, because defined variables are faster than not-defined ones.
 
 Core= (function() {
 
@@ -74,9 +74,10 @@ Core= (function() {
     //  Core
     // ====================================================================
 
+    // FIXME: This is only correct for MonteCarlo
     var initCellScore= function() {
 
-        // Generates a basic Scoring (how intense will a certain postition be looked at):
+        // Generates a basic Scoring (how intense will a certain position be looked at):
         // 6 4 4 4 ..
         // 4 1 2 2 ..
         // 4 2 4 2 ..
@@ -109,12 +110,12 @@ Core= (function() {
         posDiag1= [];
         posDiag2= [];
 
-        for (var y= 8; y--; ) {
+        for ( var y= 8; y--; ) {
             posH.push(0);
             posV.push(0);
         }
 
-        for (var y= 15; y--; ) {
+        for ( var y= 15; y--; ) {
             posDiag1.push(0);
             posDiag2.push(0);
         }
@@ -172,6 +173,7 @@ Core= (function() {
 
         var pos0= 0;
 
+        // We do this chunk-wise, otherwise slow browsers will complain.
         var nextChunk= function() {
 
             for ( var chunk= 8192; chunk--; pos0++ ) {
@@ -249,7 +251,20 @@ Core= (function() {
         setTimeout(nextChunk, 1);
     }
 
+
+    // ====================================================================
+    //  Code generation
+    // ====================================================================
+
+    // Important Optimization to reduce Closure overhead for FF in make*-Functions
+    // Change to "" to turn off.
+    var localize= "local_";
+    localize= "";
+
+
     // Builds an optimized function that calculates the valid moves.
+    // High speed of this function is absolutely vital, because it's by
+    // far the most often called. (12000 times/sec with my FF3.5)
     // The resulting function is fast, but still contains to many loops
     // and ifs, so I'm not very happy about it yet.
     // It's pretty much the bootleneck of the whole computaion.
@@ -265,11 +280,23 @@ Core= (function() {
             , "     var valid, cell, score;"
             , "     var result= [];"
         );
-
+        
+        if ( localize ) {
+            result.push(""
+                // Closures are expensive. Fetch the required read-only values and put them into locals.
+                , "     var " + localize + "posList= posList;"
+                , "     var " + localize + "colMask= colMask;"
+                , "     var " + localize + "posH= posH;"
+                , "     var " + localize + "posV= posV;"
+                , "     var " + localize + "posDiag1= posDiag1;"
+                , "     var " + localize + "posDiag2= posDiag2;"
+            );
+        }
+        
         var checkValid= function(posArray, move, base, mul, len) {
 
             result.push(""
-                , "     valid= posList[" + posArray + "[" + move + "] ^ colMask];"
+                , "     valid= " + localize + "posList[" + localize + posArray + "[" + move + "] ^ " + localize + "colMask];"
             );
 
             if (mul == -1) mul= ' - ';
@@ -408,19 +435,9 @@ Core= (function() {
     }
 */
 
-    var unique= function(a) {
-        var lookup= [];
-        var result= [];
-        for (var i= a.length; i--; ) {
-            if (lookup[a[i]] == undefined) result[result.length]= a[i];
-            lookup[a[i]]= 1;
-        }
-        return result;
-    }
-
     // Generate specialized function for making a the specified move.
     // The produced code does pretty well nothing superfluous. Most
-    // values can be prcomputed so it mainly uses constants and no loops.
+    // values can be precomputed so it mainly uses constants and no loops.
     // So it's fast. If you can make it faster, please let me know!
     //
     var makeSetAt= function(move) {
@@ -430,9 +447,9 @@ Core= (function() {
 
         var result= [];
 
-        var shl= function(name, value) {
-            if (value) return '(' + name + ' << ' + value + ')';
-            return name;
+        var colShl= function(value) {
+            if (value) return "(" + localize + "col << " + value + ")";
+            return localize + "col";
         };
 
         var encloseIfContainsCode= function(aBefore, aAfter, func) {
@@ -526,12 +543,12 @@ Core= (function() {
                     );
                     if (found == 1) {
                         result.push(""
-                            , "         diff += colDiff + colDiff;"
+                            , "         diff += " + localize + "colDiff + " + localize + "colDiff;"
                         );
                     }
                     else if (found > 1) {
                         result.push(""
-                            , "         diff += (colDiff + colDiff) * qi;"
+                            , "         diff += (" + localize + "colDiff + " + localize + "colDiff) * qi;"
                         );
                     }
                 }
@@ -551,53 +568,97 @@ Core= (function() {
             , " function() {"
             , "     var pos, qi;"
             , "     boardLog[boardLog.length]= " + move + ";"
-            , "     diff += colDiff;"
+            , "     diff += " + localize + "colDiff;"
         );
 
+        if ( localize ) {
+            result.push(""
+
+                // Closures are expensive. Fetch the required read-only values and put them into locals.
+                , "     var " + localize + "posList= posList;"
+                , "     var " + localize + "col= col;"
+                , "     var " + localize + "colMask= colMask;"
+                , "     var " + localize + "colDiff= colDiff;"
+            );
+        }
+        
         recalcValid= addRecalcValid([0, 0], movey, movex, moveday, movedby);
 
         result.push(""
-            , "     pos= posList[posH[" + movey + "] ^ colMask];"
-            , "     posH[" + movey + "] |= " + shl('col', movex2) + ";"
+            , "     pos= " + localize + "posList[posH[" + movey + "] ^ " + localize + "colMask];"
+            , "     posH[" + movey + "] |= " + colShl(movex2) + ";"
         );
 
         flip(movex2 + 11, -1, 0);
         flip(movex2 + 12,  1, 0);
 
         result.push(""
-                , "     pos= posList[posV[" + movex + "] ^ colMask];"
-                , "     posV[" + movex + "] |= " + shl('col', movey2) + ";"
+                , "     pos= " + localize + "posList[posV[" + movex + "] ^ " + localize + "colMask];"
+                , "     posV[" + movex + "] |= " + colShl(movey2) + ";"
         );
 
         flip(movey2 + 11, 0, -1);
         flip(movey2 + 12, 0,  1);
 
         result.push(""
-            , "     pos= posList[posDiag1[" + moveday + "] ^ colMask];"
-            , "     posDiag1[" + moveday + "] |= " + shl('col', movedax) + ";"
+            , "     pos= " + localize + "posList[posDiag1[" + moveday + "] ^ " + localize + "colMask];"
+            , "     posDiag1[" + moveday + "] |= " + colShl(movedax) + ";"
         );
 
         flip(movedax + 11, -1, -1);
         flip(movedax + 12,  1,  1);
 
         result.push(""
-            , "     pos= posList[posDiag2[" + movedby + "] ^ colMask];"
-            , "     posDiag2[" + movedby + "] |= " + shl('col', movedbx) + ";"
+            , "     pos= " + localize + "posList[posDiag2[" + movedby + "] ^ " + localize + "colMask];"
+            , "     posDiag2[" + movedby + "] |= " + colShl(movedbx) + ";"
         );
 
         flip(movedbx + 11, -1,  1);
         flip(movedbx + 12,  1, -1);
 
         result.push(""
-            , "     col= 3 - col;"
-            , "     colMask= 65535 - colMask;"
-            , "     colDiff= -colDiff;"
+            , "     col= 3 - " + localize + "col;"
+            , "     colMask= 65535 - " + localize + "colMask;"
+            , "     colDiff= -" + localize + "colDiff;"
             , " }"
         );
 
         // if (move == 22) { console.log(result.join("\n")); die(); }
 
+        // Note: blah = new Function( ... ) won't work because we need a closure here.
         eval("setAt[" + move + "]= (" + result.join("\n") + ");");
+    }
+
+
+    // ====================================================================
+    //  Stuff
+    // ====================================================================
+
+/*
+    var unique= function(a) {
+        var lookup= [];
+        var result= [];
+        for (var i= a.length; i--; ) {
+            if ( a[i] in lookup ) continue;
+            result[result.length]= a[i];
+            lookup[a[i]]= 1;
+        }
+        return result;
+    }
+*/
+    // Seems to be significantly faster (5x FF 3.5, 2x Webkit) :-/ -> Hashes ARE slow...
+    var unique= function(a) {
+        var result= [];
+        var result_length= 0;
+        var i, j, n;
+        again:
+        for ( i= 0, n= a.length; i < n; i++ ) {
+            for ( j= result_length; j--; ) {
+                if ( result[j] == a[i] ) continue again;
+            }
+            result[result_length++] = a[i];
+        }
+        return result;
     }
 
     var finished= function() {
@@ -647,8 +708,8 @@ Core= (function() {
         return "?"
     }
 
-    // Capture Object
-    var Capture= function () {
+    // GameState Object
+    var GameState= function () {
 
         var capPosH= [], capPosV= [], capPosDiag1= [], capPosDiag2= [];
         var capBoardLog= [];
@@ -656,7 +717,7 @@ Core= (function() {
         var capCol, capColMask, capColDiff;
         var capDiff;
 
-        var captureBoard= function() {
+        var captureState= function() {
 
             for ( var y= 8; y--; ) {
                 capPosH[y]= posH[y];
@@ -680,7 +741,7 @@ Core= (function() {
             capDiff= diff;
         }
 
-        var restoreBoard= function() {
+        var restoreState= function() {
 
             for ( var y= 8; y--; ) {
                 posH[y]= capPosH[y];
@@ -720,8 +781,8 @@ Core= (function() {
             diff= capDiff;
         }
 
-        this.capture= captureBoard;
-        this.restore= restoreBoard;
+        this.capture= captureState;
+        this.restore= restoreState;
     }
 
     var init= function( doneFn ) {
@@ -796,10 +857,11 @@ Core= (function() {
 
         endTime= startTime + secs * 1000;
 
-        var capture= new Core.Capture();
+        var gameState= new Core.GameState();
+        gameState.capture();
 
         Compute.run(startTime, endTime, moves, function (move, comment) {
-            capture.restore();
+            gameState.restore();
 
             endTime= 0;
 
@@ -823,7 +885,7 @@ Core= (function() {
         computeMove:    computeMove,
         pass:           pass,
         colName:        colName,
-        Capture:        Capture,
+        GameState:      GameState,
         zeroes:         zeroes,
 
         makeMove:       function (move) { setAt[move](); },

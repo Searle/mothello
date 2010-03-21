@@ -1,0 +1,160 @@
+
+Benchmark different "unique" algorithms
+
+<script type="text/javascript" src="benchmark.js"></script>
+
+<script>
+
+skiptest.uniqueHash= function(a) {
+        var lookup= [];
+        var result= [];
+        for ( var i= a.length; i--; ) {
+            if ( a[i] in lookup ) continue;
+            result[result.length]= a[i];
+            lookup[a[i]]= 1;
+        }
+        return result;
+}
+
+test.uniqueNested= function(a) {
+        var result = [];
+        var result_length= 0;
+
+        again:
+        for ( var i= 0, n= a.length; i < n; i++ ) {
+            for ( var j= 0; j < result_length; j++ ) {
+                if ( result[j] == a[i] ) continue again;
+            }
+            result[result_length++] = a[i];
+        }
+        return result;
+}
+
+// Immer mittelmaessig
+skiptest.uniqueNested2= function(a) {
+        var result= new Array();
+        var result_length= 0;
+        var a_length= a.length;
+        again:
+        for ( var i = 0; i < a_length; i++) {
+            for ( var j = i + 1 ; j < a_length; j++ ) {
+                if ( a[j] == a[i] ) continue again;
+            }
+            result[result_length++]= a[i];
+       }
+       return result;
+}
+
+test.uniqueNested3= function(a) {
+        var result = [];
+        var result_length= 0;
+        var i, j, n;
+        again:
+        for ( i= 0, n= a.length; i < n; i++ ) {
+            for ( j= result_length; j--; ) {
+                if ( result[j] == a[i] ) continue again;
+            }
+            result[result_length++] = a[i];
+        }
+        return result;
+};
+
+test.uniqueNested3id= function(a) {
+        var result = [];
+        var result_length= 0;
+        var i, j, n;
+        again:
+        for ( i= 0, n= a.length; i < n; i++ ) {
+            for ( j= result_length; j--; ) {
+                if ( result[j] === a[i] ) continue again;
+            }
+            result[result_length++] = a[i];
+        }
+        return result;
+};
+
+test.uniquePreparedHash= function(a) {
+        var lookup = {}, i, result = [];
+        for( i= a.length; i--; ) lookup[a[i]]= a[i];
+        for( i in lookup ) result.push(lookup[i]);
+        return result;
+};
+
+test.uniquePreparedHash2= function(a) {
+        var lookup = {}, i, result = [];
+        for( i= a.length; i--; ) lookup[a[i]]= a[i];
+        for( i in lookup ) result[result.length]= lookup[i];
+        return result;
+};
+
+test.uniquePreparedHash3= function(a) {
+        var lookup = {}, i, result = [], result_length= 0;
+        for( i= a.length; i--; ) lookup[a[i]]= a[i];
+        for( i in lookup ) result[result_length++]= lookup[i];
+        return result;
+};
+
+// Doesn't work (1. Must copy array 2. Types must be known)
+skiptest.uniqueSort= function(a) {
+        // a= a.concat().sort(function (a, b) { return a - b; });
+        var result= [];
+        for( var i = 1; i < a.length; i++ ) {
+            if ( a[i-1] != a[i] ) result[result.length]= a[i];
+        }
+        return result;
+};
+
+test.uniqueIndexOf= function(a) {
+        var result= [];
+        for( var i = 0, n = a.length; i < n; i++) {
+            if ( result.indexOf(a[i]) < 0 ) result[result.length]= a[i];
+        }
+        return result;
+};
+
+test.uniqueLastIndexOf= function(a) {
+        var result= [];
+        for( var i = 0, n = a.length; i < n; i++) {
+            if ( result.lastIndexOf(a[i]) < 0 ) result[result.length]= a[i];
+        }
+        return result;
+};
+
+test.uniqueCombined= function(a) {
+        if ( a.length < 10 ) return test.uniqueNested(a);
+        if ( a.length < 100 ) return test.uniqueLastIndexOf(a);
+        return test.uniquePreparedHash3(a);
+}
+
+// ---------------------
+
+// Benchmark.only('uniqueNested3', 'uniqueNested3id');
+
+var data= function (dup, fn, tmp) {
+    if ( tmp === undefined ) tmp= [ 1, 2, 4, 3, 1, 1, 2, 6, 4, 7, 4, 1, 1, 1, 8, 4, 2 ];
+    var a= [];
+    for ( var i in tmp ) for ( var j= tmp[i]; j--; ) { a.push(fn(i)); };
+    for ( var i= dup; i--; ) a= a.concat(a);
+    return a;
+}
+
+if ( 1 ) {
+    Benchmark.on(100000, data(0, function (i) { return i*10 ; }, [ 1, 2, 4, 2]));
+    Benchmark.on(100000, data(0, function (i) { return i*10 ; }, [ 1, 1, 1, 1]));
+    Benchmark.on(100000, data(1, function (i) { return i*10 ; }, [ 1, 2, 4, 2]));
+    Benchmark.on(100000, data(1, function (i) { return i*10 ; }, [ 1, 1, 1, 1]));
+    Benchmark.on( 20000, data(3, function (i) { return i*10 ; }, [ 1, 2, 4, 2, 6]));
+    Benchmark.on(100000, data(0, function (i) { return i*10 ; }, [ 1, 2, 4, 2]));
+    Benchmark.on(100000, data(0, function (i) { return i*10 ; }, [ 1, 1, 1, 1]));
+}
+
+if ( 1 ) {
+    Benchmark.on( 10000, data(1, function (i) { return i*10; }));
+    Benchmark.on(  8000, data(2, function (i) { return i*10; }));
+    Benchmark.on( 20000, data(1, function (i) { return i*10 + ""; }, [ 1, 2, 4, 2]));
+    Benchmark.on(  3000, data(1, function (i) { return i*10 + ""; }));
+    Benchmark.on(  3000, data(2, function (i) { return i*10 + ""; }));
+    Benchmark.on( 10000, data(3, function (i) { return i*10 + ""; }));
+}
+
+</script>
