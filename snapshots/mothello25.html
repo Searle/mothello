@@ -1,7 +1,9 @@
+<head>
+<title>MoThello</title>
 <script>
 
     // ====================================================================
-    //  MoReversi Version 2008-08-20. Inspired by MoGo.
+    //  MoThello Version 2008-08-20. Inspired by MoGo.
     //  (c) 2008 by Dietrich Raisin, info1@raisin.de, www.raisin.de
     //
     //  Released under the Artistic License 2.0. Here are the terms:
@@ -10,6 +12,10 @@
     //  To make a copy, this file is the only one you need. No images were
     //  used, the stones are unicode characters.
     //
+    //  Lessons learned:
+    //  - Hashes are slow
+    //  - Function calls are slow
+    //  - Generating new arrays is slow
     // ====================================================================
 
     if (typeof console == 'undefined') {
@@ -52,6 +58,8 @@
     var validDiag;
     var validMoves;
 */
+    var validMoves;
+
     var hStatusTimer= null;     // Used by status(). Timer for switching back the status information to default value
 
     var endTime= 0;             // Used by computeMove()
@@ -60,7 +68,7 @@
 
     var setAt;
 
-    var computerCol= 0;
+    var computerCol= 1;
 
     // ====================================================================
     //  Core
@@ -112,9 +120,10 @@
 
         boardLog= [];
 
-        col= 1;
-        colMask= 0;
-        colDiff= 1;
+        // Black begins
+        col= 2;
+        colMask= 65535;
+        colDiff= -1;
         
         diff= 0;
 /*
@@ -124,10 +133,13 @@
         validDiag= validMovesCheck.concat();
         validMoves= [];
 */
-        setAt[27]();
+
+        validMoves= [];
+
         setAt[28]();
-        setAt[36]();
+        setAt[27]();
         setAt[35]();
+        setAt[36]();
 
         // setAt[29](); setAt[37](); setAt[45](); setAt[38](); setAt[42](); setAt[22]();
 
@@ -324,8 +336,9 @@
 
         result.push(""
             , " function() {"
-            , "     var check= validMovesCheck.concat();"
-            , "     var valid, cell;"
+//            , "     var check= validMovesCheck.concat();"
+            , "     var cellScore2= cellScore.concat();"
+            , "     var valid, cell, score;"
             , "     var result= [];"
         );
 
@@ -347,11 +360,21 @@
             for (var i= 0; i < 3; i++) {
                 result.push(""
                     , "     if (valid[" + i + "] < " + len + ") {"
-                    , "         cell= " + base + mul + "valid[" + i + "];"
+//                    , "         cell= " + base + mul + "valid[" + i + "];"
+
+//                    , "         if (score= cellScore2[cell]) {"
+                    , "         if (score= cellScore2[" + base + mul + "valid[" + i + "]]) {"
+                    , "             cell= " + base + mul + "valid[" + i + "];"
+                    , "             cellScore2[cell]= 0;"
+                    , "             while (score--) result[result.length]= cell;"
+
+
+/*
                     , "         if (check[cell] == 0) {"
                     , "             check[cell]= 1;"
-                    , "             var score= cellScore[cell];"
+                    , "             score= cellScore[cell];"
                     , "             while (score--) result[result.length]= cell;"
+*/
 /*
                     , "             result[result.length]= cell;"
                     , "             if (score >= 2) { result[result.length]= cell;"
@@ -386,7 +409,7 @@
             , " }"
         );
 
-        // console.log(result.join("\n"));
+        console.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
@@ -770,6 +793,47 @@
 
     function restoreBoard() {
 
+        for (var y= 8; y--; ) {
+            posH[y]= capPosH[y];
+            posV[y]= capPosV[y];
+        }
+
+        for (var y= 15; y--; ) {
+            posDiag1[y]= capPosDiag1[y];
+            posDiag2[y]= capPosDiag2[y];
+        }
+
+        boardLog.splice(capBoardLog.length, 64);
+        for (var i= capBoardLog.length; i--; ) {
+            boardLog[i]= capBoardLog[i];
+        }
+/*
+        validHV= [];
+        validDiag= [];
+        for (var i= 64; i--; ) {
+            validHV[i]= capValidHV[i];
+            validDiag[i]= capValidDiag[i];
+        }
+
+        validMoves= [];
+        for (var i= capValidMoves.length; i--; ) {
+            validMoves[i]= capValidMoves[i];
+        }
+
+        recalcValidHV= capRecalcValidHV;
+        recalcValidDiag= capRecalcValidDiag;
+*/
+        
+        col= capCol;
+        colMask= capColMask;
+        colDiff= capColDiff;
+
+        diff= capDiff;
+    }
+
+
+    function restoreBoard_old() {
+
         var tmp;
 
         tmp= posH; posH= capPosH; capPosH= tmp;
@@ -835,12 +899,14 @@
         // Consume last 1/3 of the time only playing the best three moves so far
         var resortTime= new Date().getTime() + secs * 666;
 
-        var moveScore= {};
+        var moveScore= [];
         for (var movei in moves) {
             moveScore[moves[movei]]= 0;
         }
 
         var dots= '';
+
+        captureBoard();
 
         var inner= function() {
 
@@ -866,22 +932,35 @@
                     resortTime= 0;
                 }
 
+                var nextMoves;
+                var nextMove;
+                var movei;
+
                 for (var n= 10; n--; ) {
-                    for (var movei in moves) {
-                        captureBoard();
+                    for (movei in moves) {
+                        restoreBoard();
                         setAt[moves[movei]]();
-                        autoPlay();
+
+                        while (1) {
+                            nextMoves= getValidMoves();
+                            if (nextMoves.length == 0) {
+                                pass();
+                                nextMoves= getValidMoves();
+                                if (nextMoves.length == 0) break;
+                            }
+                            nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
+                            setAt[nextMove]();
+                        }        
 
                         if (capCol == 1) {
-                            if (diff > 0) moveScore[moves[movei]] += 2;
-                            if (diff < 0) moveScore[moves[movei]] -= 3;
+                            if (diff > 0) moveScore[moves[movei]]++;
+                            if (diff < 0) moveScore[moves[movei]]--;
                         }
                         else {
-                            if (diff < 0) moveScore[moves[movei]] += 2;
-                            if (diff > 0) moveScore[moves[movei]] -= 3;
+                            if (diff < 0) moveScore[moves[movei]]++;
+                            if (diff > 0) moveScore[moves[movei]]--;
                         }
 
-                        restoreBoard();
                         games++;
                     }
                 }
@@ -889,6 +968,7 @@
                 return;
             }
 
+            restoreBoard();
             endTime= 0;
     
             moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
@@ -1079,7 +1159,6 @@
 
         if (computerCol == col) {
             computeMove();
-            // setTimeout(function() { computeMove(); }, 100);
         }
     }
 
@@ -1109,15 +1188,12 @@
         if (isComputersTurn()) return;
         if (finished()) return;
 
-        // var n= boardLog[boardLog.length-1] < 0 ? 64 : 1;
-        // while (n--) pass();
         pass();
         refreshBoard();
         defaultStatus();
 
         if (computerCol == col) {
             computeMove();
-            // setTimeout(function() { computeMove(); }, 100);
         }
     }
 
@@ -1202,7 +1278,7 @@
         color: #FFF;
     }
     #board .cell .stone-bg, #board .cell .stone-fg {
-        top: -16px;
+        top: -15px;
         font-size: 300%;
     }
     #board .cell .stone-bg {
@@ -1263,9 +1339,10 @@
         padding: 10px;
     }
 </style>
+</head>
 <body onload="doOnload()">
     <div id="head">
-        <h1>MoReversi</h1>
+        <h1>MoThello</h1>
         (c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a>
     </div>
     <div id="body">
