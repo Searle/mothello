@@ -748,30 +748,30 @@
             return 1;
         }
 
-        endTime= new Date().getTime() + secs * 1000;
+        var startTime= new Date().getTime();
 
-        var cleanupTime= new Date().getTime() + secs * 333;
+        endTime= startTime + secs * 1000;
+
+        // Start removing stupid moves from the list of considered moves after 1/3 of the time
+        var cleanupTime= startTime + secs * 333;
         
-        // Consume last 1/3 of the time only playing the best three moves so far
-        var resortTime= new Date().getTime() + secs * 666;
-
-        var moveScore= [];
+        var scores= [];
 /*
         for (var movei in moves) {
-            moveScore[moves[movei]]= 0;
+            scores[moves[movei]]= 0;
         }
 */
         captureBoard();
 
-        var moves2= [];
-        var moveScore2= [];
+        var oppMoves= [];
+        var oppScores= [];
 
         for (var movei in moves) {
             var move= moves[movei];
 
             setAt[move]();
-            moves2[movei]= unique(getValidMoves());
-            moveScore2[movei]= zero64.concat();
+            oppMoves[movei]= unique(getValidMoves());
+            oppScores[movei]= zero64.concat().splice(0, oppMoves[movei].length);
             restoreBoard();
         }
 
@@ -781,181 +781,210 @@
         var nextMoves;
         var nextMove;
         var move, movei;
-        var move2, movei2;
+        var oppMove, oppMovei;
 
         updateUI();
 
-        var r= function(v) { var s= '        ' + (Math.round(v * 10) / 10); return s.substr(s.length - 8); }
+        var r= function(v) { var s= '        ' + (Math.round(v * 10) / 10); return s.substr(s.length - 8); };
+        var prefix= function(move) { return colName(col) + " " + ('' + (move + 100)).substr(1) + ":  "; };
+
+        var avgScore= function(opps, oppm) {
+
+// console.log(opps); console.log(oppm);
+
+            var min= 999999999;
+            var max= -999999999;
+            var d= 0;
+            var n= oppm ? oppm.length : opps.length;
+            for (var i= n; i--; ) {
+                var score= oppm ? opps[oppm[i]] : opps[i];
+                if (score > max) max= score;
+                if (score < min) min= score;
+                d += score;
+            }
+            return d / n + (max - min) * 0.2;
+        };
 
         var reduceMoves= function() {
 
+            calcMoveScore();
+            console.log(avgScore(scores, moves));
+
+            var before= 0;
+            var after= 0;
+
             for (var movei in moves) {
                 var move= moves[movei];
 
-                var n= moves2[movei].length;
-                var scores= moveScore2[movei];
+                var n= oppMoves[movei].length;
+                var oppm= oppMoves[movei];
+                var opps= oppScores[movei];
 
+
+                var min= 999999;
+                var max= -999999;
                 var d= 0;
-                for (var movei2= n; movei2--; ) {
-                    d += scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    if (opps[oppMovei] > max) max= opps[oppMovei];
+                    if (opps[oppMovei] < min) min= opps[oppMovei];
+                    d += opps[oppMovei];
                 }
                 d /= n;
+                d += (max - min) * 0.2;
+             
+                var d2= avgScore(opps);
+                if (d != d2) { console.log(d + '!=' + d2 + " n=" + n + " opps.l=" + opps.length); die(); }
 
-                var newMove2= [];
-                var newMoveScore2= [];
+                // d now contains the average score + 20% * (max - min).
+                // Now all moves with scores > d are removed.
 
-                for (var movei2= n; movei2--; ) {
-                    if (scores[movei] > d) return;
-                    newMove2[]= moves2[movei][movei2];
-                    newMoveScore2[]= scores[movei];
+                var newOppMove=  [];
+                var newOppScore= [];
+
+                for (var oppMovei= n; oppMovei--; ) {
+                    if (opps[oppMovei] > d) continue;
+                    newOppMove[newOppMove.length]=   oppm[oppMovei];
+                    newOppScore[newOppScore.length]= opps[oppMovei];
                 }
 
-                moves2[movei]= newMove2;
-                moveScore2[movei]= newMoveScore2;
+                oppMoves[movei]=  newOppMove;
+                oppScores[movei]= newOppScore;
 
-                if (0) {
-                    var debug= '';
-                    for (var movei2= n; movei2--; ) {
-                        var score= scores[movei2];
-                        debug += ' [' + moves2[movei][movei2] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
-                    }
-                    console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(moveScore[move]) + debug);
-                }
+                before += n;
+                after += newOppMove.length;
             }
+
+            console.log("reduceMoves: before=" + before + " after=" + after);
         };    
 
         var calcMoveScoreCut= function() {
-            moveScore= [];
+            scores= [];
 
             for (var movei in moves) {
                 var move= moves[movei];
 
-                var n= moves2[movei].length;
-                var scores= moveScore2[movei];
+                var n= oppMoves[movei].length;
+                var opps= oppScores[movei];
 
                 var d= 0;
-                for (var movei2= n; movei2--; ) {
-                    d += scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    d += opps[oppMovei];
                 }
                 d /= n;
 
                 var dd = 0;
-                for (var movei2= n; movei2--; ) {
-                    var score= scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    var score= opps[oppMovei];
                     dd += score > d ? d : score;
                 }
-                moveScore[move]= dd / n;
+                scores[move]= dd / n;
 
                 if (1) {
                     var debug= '';
-                    for (var movei2= n; movei2--; ) {
-                        var score= scores[movei2];
-                        debug += ' [' + moves2[movei][movei2] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
+                    for (var oppMovei= n; oppMovei--; ) {
+                        var score= opps[oppMovei];
+                        debug += ' [' + oppMoves[movei][oppMovei] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
                     }
-                    console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(moveScore[move]) + debug);
+                    console.log(prefix() + "d=" + r(d) + " score=" + r(scores[move]) + debug);
                 }
             }
         };    
 
         var calcMoveScoreMin= function() {
-            moveScore= [];
+            scores= [];
 
             for (var movei in moves) {
                 var move= moves[movei];
 
-                var n= moves2[movei].length;
-                var scores= moveScore2[movei];
+                var n= oppMoves[movei].length;
+                var opps= oppScores[movei];
 
                 var min= 999999;
-                for (var movei2= n; movei2--; ) {
-                    if (min > scores[movei2]) min= scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    if (min > opps[oppMovei]) min= opps[oppMovei];
                 }
 
-                moveScore[move]= min;
+                scores[move]= min;
 
                 if (1) {
-                    console.log(colName(col) + " " + move + ": min=" + r(min) + " score=" + r(moveScore[move]));
+                    console.log(prefix(move) + "min=" + r(min) + " score=" + r(scores[move]));
                 }
             }
         };    
 
         var calcMoveScore1= function() {
-            moveScore= [];
+            scores= [];
 
             for (var movei in moves) {
                 var move= moves[movei];
 
-                var n= moves2[movei].length;
-                var scores= moveScore2[movei];
+                var n= oppMoves[movei].length;
+                var opps= oppScores[movei];
 
 /*
                 var min= 999999;
-                for (var movei2= n; movei2--; ) {
-                    if (min > scores[movei2]) min= scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    if (min > opps[oppMovei]) min= opps[oppMovei];
                 }
 */
                 var d= 0;
-                for (var movei2= n; movei2--; ) {
-                    d += scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    d += opps[oppMovei];
                 }
                 d /= n;
 
                 var dd = 0;
-                for (var movei2= n; movei2--; ) {
-                    var score= scores[movei2];
+                for (var oppMovei= n; oppMovei--; ) {
+                    var score= opps[oppMovei];
                     dd += score > d ? score : d - Math.pow(d - score, 2);
                 }
-                moveScore[move]= dd / n;
+                scores[move]= dd / n;
 
                 if (1) {
                     var debug= '';
-                    for (var movei2= n; movei2--; ) {
-                        var score= scores[movei2];
-                        debug += ' [' + moves2[movei][movei2] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
+                    for (var oppMovei= n; oppMovei--; ) {
+                        var score= opps[oppMovei];
+                        debug += ' [' + oppMoves[movei][oppMovei] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
                     }
-                    console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(moveScore[move]) + debug);
+                    console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(scores[move]) + debug);
                 }
             }
         };    
 
         var calcMoveScoreCK= function() {
-            moveScore= [];
+            scores= [];
+
+            // A3: -17 ...
+            // A5: <f>(A3-25)^$A$1</f>
+            // K5: <f>(SUM($A5:$G5)^(1/$A$1)*($A3)/COUNT($A3:$G3))</f>
 
             for (var movei in moves) {
                 var move= moves[movei];
 
-                var n= moves2[movei].length;
-                var scores= moveScore2[movei];
-
-                var s1= '';
-
+                var n= oppMoves[movei].length;
+                var opps= oppScores[movei];
                 var smin= 99999999;
                 var sum= 0;
-                var sum1= 0;
-                var score0;
 
-                for (movei2= n; movei2--; ) {
-                    var score= scores[movei2];
+                for (oppMovei= n; oppMovei--; ) {
+                    var score= opps[oppMovei];
                     if (score < smin) smin= score;
                     
-                    sum += (score0= Math.pow(score - gamesPerMove, 8));
-                    sum1 += score;
-
-                    // s1 += ' ' + moves2[movei][movei2] + ':' + score;
-                    // s1 += '(' + r(score0) + ')';
+                    sum += Math.pow(score - gamesPerMove, 8);
                 }
 
-                sum= Math.pow(sum, 1/8) * smin / moves2[movei].length;
+                scores[move]= Math.floor(Math.pow(sum, 1/8) * smin / oppMoves[movei].length);
 
-                moveScore[move]= Math.floor(sum * 1000);
-
-                console.log(('' + (move + 100)).substr(1) + ' ' + moveScore[move] + '(' + sum1 + ') -> ' + s1);
-
-// A3: -17 ...
-// A5: <f>(A3-25)^$A$1</f>
-// K5: <f>(SUM($A5:$G5)^(1/$A$1)*($A3)/COUNT($A3:$G3))</f>
+                console.log(prefix(move) + ' score=' + scores[move]);
             }
         };    
+
+        var calcMoveScore= function() {
+            // col == 1 ? calcMoveScoreCK()  : calcMoveScoreCut();     // Cut 5 sec battery
+            // col == 1 ? calcMoveScoreMin() : calcMoveScoreCut();     // Min 5s battery
+            // col == 1 ? calcMoveScoreMin() : calcMoveScoreCK();     // Min 10s
+            col == 1 ? calcMoveScoreCK() : calcMoveScoreMin();     // Min 10s 17:27
+        };
 
         var inner= function() {
 
@@ -969,31 +998,21 @@
                 // If a certain amount of time is used up, concentrate on the
                 // so far best three moves.
 
-/*
                 if (cleanupTime && time > cleanupTime) {
-
-                    for (movei in moves) {
-                        move= moves[movei];
-
-                        for (movei2 in moves2[movei]) {
-                            move2= moves2[movei][movei2];
-
-                        }
-                    }
-
+                    reduceMoves();
+                    cleanupTime= Math.max(time + 500, (time + endTime) / 2);
                 }
-*/
 /*
                 if (resortTime && time > resortTime) {
                     console.log("Resorting...");
                     if (moves.length > 3) {
-                        moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
+                        moves.sort(function(a, b) { return scores[b] - scores[a]; });
                         moves.splice(3, 64);
                         
-                        // Reset the scores.
+                        // Reset the opps.
                         // TODO: Is that a good idea?
                         for (var movei in moves) {
-                            moveScore[moves[movei]]= 0;
+                            scores[moves[movei]]= 0;
                         }
                     }
                     resortTime= 0;
@@ -1011,14 +1030,14 @@
                     for (movei in moves) {
                         move= moves[movei];
 
-                        for (movei2 in moves2[movei]) {
-                            move2= moves2[movei][movei2];
+                        for (oppMovei in oppMoves[movei]) {
+                            oppMove= oppMoves[movei][oppMovei];
 
                             restoreBoard();
                             setAt[move]();
 
-// console.log(moves2[move]);
-                            setAt[move2]();
+// console.log(oppMoves[move]);
+                            setAt[oppMove]();
 
                             while (1) {
                                 nextMoves= getValidMoves();
@@ -1032,12 +1051,12 @@
                             }        
 
                             if (capCol == 1) {
-                                if (diff > 0) moveScore2[movei][movei2]++;
-                                if (diff < 0) moveScore2[movei][movei2]--;
+                                if (diff > 0) oppScores[movei][oppMovei]++;
+                                if (diff < 0) oppScores[movei][oppMovei]--;
                             }
                             else {
-                                if (diff < 0) moveScore2[movei][movei2]++;
-                                if (diff > 0) moveScore2[movei][movei2]--;
+                                if (diff < 0) oppScores[movei][oppMovei]++;
+                                if (diff > 0) oppScores[movei][oppMovei]--;
                             }
 
                             games++;
@@ -1052,24 +1071,21 @@
             restoreBoard();
             endTime= 0;
 
-            // col == 1 ? calcMoveScoreCK()  : calcMoveScoreCut();     // Cut 5 sec battery
-            col == 1 ? calcMoveScoreMin() : calcMoveScoreCut();     // Min 5s battery
-            col == 1 ? calcMoveScoreMin() : calcMoveScoreCK();     // Min 10s
-            col == 1 ? calcMoveScoreCK() : calcMoveScoreMin();     // Min 10s 17:27
+            calcMoveScore();
 
-            moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
+            moves.sort(function(a, b) { return scores[b] - scores[a]; });
 
             // console.log(getValidMoves());
 
-            var scores= '';
+            var s= '';
             for (var movei in moves) {
-                scores += ' ' + moves[movei] + ':' + (Math.floor(moveScore[moves[movei]] * 10) / 10);
+                s += ' ' + moves[movei] + ':' + (Math.floor(scores[moves[movei]] * 10) / 10);
             }
-            console.log("Scores:" + scores);
+            console.log("Scores:" + s);
     
             doMove(moves[0]);
             
-            // console.log(moveScore);
+            // console.log(scores);
         }
 
         setTimeout(inner, 10);
@@ -1419,14 +1435,10 @@
 
 
             // seltsamer move von weiss
-            // setAt[26](); setAt[34](); setAt[41](); setAt[18](); setAt[42](); setAt[25](); setAt[20](); setAt[33](); setAt[44](); setAt[53](); setAt[32](); setAt[40](); setAt[11](); setAt[10](); setAt[2](); setAt[17](); setAt[16](); setAt[24](); setAt[48]();
+            setAt[26](); setAt[34](); setAt[41](); setAt[18](); setAt[42](); setAt[25](); setAt[20](); setAt[33](); setAt[44](); setAt[53](); setAt[32](); setAt[40](); setAt[11](); setAt[10](); setAt[2](); setAt[17](); setAt[16](); setAt[24](); setAt[48]();
             // setAt[8](); setAt[0](); setAt[51](); setAt[19](); setAt[49](); setAt[50](); setAt[12](); setAt[21](); setAt[9](); setAt[5](); setAt[4](); setAt[60](); setAt[58](); setAt[29](); setAt[13](); setAt[6](); setAt[7](); setAt[3](); setAt[1](); setAt[59](); setAt[57](); setAt[43](); setAt[45](); setAt[37](); setAt[52](); setAt[61](); setAt[38](); setAt[31](); setAt[39](); setAt[56](); setAt[22](); setAt[47]();
             // setAt[62](); setAt[63](); setAt[30](); setAt[46]();
             // setAt[54](); setAt[55](); setAt[64](); setAt[14](); setAt[23](); setAt[15](); setAt[64](); 
-
-
-            setAt[44](); setAt[45](); setAt[19](); setAt[43](); setAt[37](); setAt[29](); setAt[30](); setAt[22](); setAt[38](); setAt[46](); setAt[21](); setAt[12](); setAt[5](); setAt[3](); setAt[13](); setAt[4](); setAt[2](); setAt[26](); setAt[42](); setAt[41](); setAt[20](); setAt[11](); setAt[10](); setAt[18](); setAt[34](); setAt[17](); setAt[6](); setAt[9](); setAt[23](); setAt[31](); setAt[25](); setAt[24](); setAt[47](); setAt[33](); setAt[40](); setAt[53](); setAt[61](); setAt[50](); setAt[58](); setAt[55]();
-            // setAt[51](); setAt[60](); setAt[59](); setAt[15](); setAt[62](); setAt[48](); setAt[0](); setAt[32](); setAt[63](); setAt[52](); setAt[1](); setAt[57](); setAt[16](); setAt[8](); setAt[56](); setAt[54](); setAt[39](); setAt[14](); setAt[7](); setAt[64](); setAt[49](); setAt[64](); 
 
             refreshBoard();
             defaultStatus();
