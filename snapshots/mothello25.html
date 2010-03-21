@@ -336,9 +336,8 @@
 
         result.push(""
             , " function() {"
-//            , "     var check= validMovesCheck.concat();"
-            , "     var cellScore2= cellScore.concat();"
-            , "     var valid, cell, score;"
+            , "     var check= validMovesCheck.concat();"
+            , "     var valid, cell;"
             , "     var result= [];"
         );
 
@@ -360,21 +359,11 @@
             for (var i= 0; i < 3; i++) {
                 result.push(""
                     , "     if (valid[" + i + "] < " + len + ") {"
-//                    , "         cell= " + base + mul + "valid[" + i + "];"
-
-//                    , "         if (score= cellScore2[cell]) {"
-                    , "         if (score= cellScore2[" + base + mul + "valid[" + i + "]]) {"
-                    , "             cell= " + base + mul + "valid[" + i + "];"
-                    , "             cellScore2[cell]= 0;"
-                    , "             while (score--) result[result.length]= cell;"
-
-
-/*
+                    , "         cell= " + base + mul + "valid[" + i + "];"
                     , "         if (check[cell] == 0) {"
                     , "             check[cell]= 1;"
-                    , "             score= cellScore[cell];"
+                    , "             var score= cellScore[cell];"
                     , "             while (score--) result[result.length]= cell;"
-*/
 /*
                     , "             result[result.length]= cell;"
                     , "             if (score >= 2) { result[result.length]= cell;"
@@ -409,7 +398,7 @@
             , " }"
         );
 
-        console.log(result.join("\n"));
+        // console.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
@@ -953,12 +942,12 @@
                         }        
 
                         if (capCol == 1) {
-                            if (diff > 0) moveScore[moves[movei]]++;
-                            if (diff < 0) moveScore[moves[movei]]--;
+                            if (diff > 0) moveScore[moves[movei]] += 2;
+                            if (diff < 0) moveScore[moves[movei]] -= 3;
                         }
                         else {
-                            if (diff < 0) moveScore[moves[movei]]++;
-                            if (diff > 0) moveScore[moves[movei]]--;
+                            if (diff < 0) moveScore[moves[movei]] += 2;
+                            if (diff > 0) moveScore[moves[movei]] -= 3;
                         }
 
                         games++;
