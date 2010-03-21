@@ -1,5 +1,18 @@
 <script>
 
+    console= null;
+
+    if (!console) {
+        console= {
+            log: function(value) {
+                var lines= document.getElementById('console').innerHTML.split('<br>');
+                lines.push(value);
+                while (lines.length > 15) lines.shift();
+                document.getElementById('console').innerHTML= lines.join('<br>');
+            }
+        };
+    }
+
     var boardLog;
 
     var posH;
@@ -18,6 +31,7 @@
     
     var undefined= undefined;   // jQuery does that. So it's correct. qed.
 
+    var getValidMoves;
     var validMovesCheck;
 
     function initBoard() {
@@ -238,7 +252,7 @@
         setTimeout(nextChunk, 1);
     }
 
-    function getValidMoves() {
+    function getValidMoves_old() {
 
         var check= validMovesCheck.concat();
         var result= [];
@@ -277,6 +291,78 @@
         }
         
         return result;
+    }
+
+    function makeGetValidMoves() {
+
+        var result= [];
+
+        result.push(""
+            , "\n    function() {"
+            , "\n       var check= validMovesCheck.concat();"
+            , "\n       var valid, cell;"
+            , "\n       var result= [];"
+        );
+
+        var checkValid= function(posArray, move, base, mul, len) {
+
+            // result[result.length] is faster than result.push, according to the net
+
+            result.push(""
+                , "\n       valid= posList[" + posArray + "[" + move + "] ^ colMask];"
+            );
+
+            if (mul == -1) mul= ' - ';
+            else if (mul == 1) mul= (base ? ' + ' : '');
+            else if (mul > 0) mul= (base ? ' + ' : '') + mul + ' * ';
+            else mul= (base ? ' - ' : ' -') + -mul + ' * ';
+
+            if (base == 0) base= '';
+
+            var i= 3;
+            while (i--) {
+                result.push(""
+                    , "\n       if (valid[" + i + "] < " + len + ") {"
+                    , "\n           cell= " + base + mul + "valid[" + i + "];"
+                    , "\n           if (check[cell] == 0) {"
+                    , "\n               check[cell]= 1;"
+                    , "\n               result[result.length]= cell;"
+                    , "\n           }"
+                    , "\n       }"
+                );
+            };
+        }
+
+        for (var i= 0; i < 8; i++) {
+            checkValid('posH',      i, i * 8, 1, 8);
+            checkValid('posV',      i, i,     8, 8);
+        }
+        for (var i= 2; i < 8; i++) {
+            checkValid('posDiag1',  i, 7 - i, 9,  i);
+            checkValid('posDiag2',  i, i * 8, -7, i);
+        }
+        for (var i= 8; i < 13; i++) {
+            checkValid('posDiag1',  i, (i - 7) * 8, 9,  15 - i);
+            checkValid('posDiag2',  i, 49 + i,      -7, 15 - i);
+        }
+
+        result.push(""
+            , "\n       return result;"
+            , "\n   }"
+        );
+
+// result= ["\n  function(){\n  return 3;\n }"];
+//        result= result.join('');
+
+        result= "getValidMoves= (" + result.join('') + ");";
+
+//         console.log(result);
+
+//        eval('bb=(function(){ return 3; });');
+
+        eval(result);
+
+        // getValidMoves= eval(result).f;
     }
 
     function markCells(cells) {
@@ -497,23 +583,24 @@
         var games= 0;
 
         while (new Date().getTime() < endTime) {
+            console.log("Thinking...");
             for (var n= 0; n < 100; n++) {
                 for (var movei in moves) {
                     var capture= captureBoard();
                     setAt(moves[movei]);
                     autoPlay();
-                    if (capture.col == 1 && moveScore[moves[movei]] > diff) moveScore[moves[movei]]= diff;
-                    if (capture.col == 2 && moveScore[moves[movei]] < diff) moveScore[moves[movei]]= diff;
+                    // console.log(capture.col);
+                    if (capture.col == 1 && moveScore[moves[movei]] < diff) moveScore[moves[movei]]= diff;
+                    if (capture.col == 2 && moveScore[moves[movei]] > diff) moveScore[moves[movei]]= diff;
                     restoreBoard(capture);
                     games++;
                 }
-                console.log("Thinking...");
             }
-            // console.log(endTime - date.getTime());
         }
 
         console.log('Done... (' + games + ' games)');
         
+        // console.log("col=" + col);
         if (col == 1) moves.sort(function(a, b) { return moveScore[a] - moveScore[b]; });
         if (col == 2) moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
 
@@ -530,6 +617,8 @@
     function doOnload() {
         initPosList();
 
+        makeGetValidMoves();
+
         var ready= function() {
             if (!initPosListDone) {
                 setTimeout(ready, 100);
@@ -537,6 +626,9 @@
             }
             initBoard();
             printBoard();
+
+            // console.log(getValidMoves2());
+
         }
         setTimeout(ready, 100);
     }
@@ -565,6 +657,11 @@
     #board .valid-move {
         background-color: yellow;
     }
+    #console {
+        padding: 20px;
+        margin: 20px;
+        border: 1px solid #888;
+    }
 </style>
 <body onload="doOnload()">
     <a href="javascript:clickUndo();">UNDO</a>
@@ -576,4 +673,5 @@
     <a href="javascript:computeMove();">computeMove</a>
     <hr>
     <div id="board"></div>
+    <div id="console"></div>
 </body>
