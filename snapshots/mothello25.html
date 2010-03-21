@@ -1,0 +1,306 @@
+<script>
+
+    var f;
+    var fv;
+    var fh;
+    var fd1;
+    var fd1_base;
+    var fd1_size;
+    var fd1_inx;
+    var flog;
+    var col;
+
+    var validMoves;
+    var initValidMovesDone= 0;
+
+    function initBoard() {
+        f= [];
+        fv= [];
+        fh= [];
+        fd1= [];
+        fd1_base= [];
+        fd1_size= [];
+        fd1_inx= [];
+        fd2= [];
+        
+        for (var y= 8; y--; ) {
+            f.push(0, 0, 0, 0, 0, 0, 0, 0);
+            fd1_inx.push(0, 0, 0, 0, 0, 0, 0, 0);
+            fv.push(0);
+            fh.push(0);
+        }
+
+        for (var y= 15; y--; ) {
+            fd1.push(0);
+            fd2.push(0);
+            fd1_size[y]= y >= 8 ? 15 - y : y + 1;
+        }
+        
+//        for (var y= 15 * 8; y--; ) {
+//            fd1_inx.push(0);
+//        }
+        
+        flog= [];
+        col= 1;
+        setAt(27);
+        setAt(28);
+        setAt(36);
+        setAt(35);
+
+        for (var move= 64; move--; ) {
+            
+        }
+
+        for (var y= 8; y--; ) {
+            for (var x= 8; x--; ) {
+ //               fd1_yinx[y * 8 + x]= y - x + 7;
+ //               fd1_yinx[y * 8 + x]= x >= y ? y : x;
+            }
+        }
+        
+        // console.log(fd1_inx);
+        console.log(fd1_size);
+        
+    }
+
+    function unmarkAllCells() {
+        for (var i= 0; i < 64; i++) {
+            document.getElementById('cell' + i).class= '';
+        }
+    }
+
+    function markCell(cell, class_) {
+        document.getElementById('cell' + i).class= class_;
+    }
+
+    function Y(move, pos0) {
+
+        var pos= pos0 >> (move * 2);
+        var j= 8 - move;
+        var has2= 0;
+        while (j--) {
+            if ((pos & 3) == 1) break;
+            if ((pos & 3) == 2) { has2++; continue; }
+            if (!has2) break;
+            console.log("left=" + has2);           
+        }
+        
+
+    }
+
+    function X(i) {
+        return validMoves[i];
+    }
+    
+    function initValidMoves() {
+    
+        validMoves= new Array(65536);
+
+        var i= 0;
+
+        var nextChunk= function() {
+
+            var pos, had, want1, want2, wantpos, j, valid;
+
+            for (chunk= 8192; chunk--; i++) {
+    
+                pos= i;
+                had= want1= want2= 0;
+                wantpos= -1;
+                valid= [];
+    
+                j= 8;
+                while (j--) {
+    
+                    if ((pos & 3) == 1) {
+                        if (wantpos >= 0) {
+                            if (want2) valid[valid.length]= 7 - wantpos;
+                            wantpos= -1;
+                        }
+                        had= 1;
+                        want2= 0;
+                    }
+                    else if ((pos & 3) == 2) {
+                        if (had == 1) had= 2;
+                        want2= 1;
+                    }
+                    else {
+                        if (had == 2) {
+                            valid[valid.length]= 7 - j;
+                        }
+                        else {
+                            wantpos= j;
+                        }
+                        had= want1= want2= 0;
+                    }
+                    pos >>= 2;
+                }
+    
+                validMoves[i]= [].concat(valid);
+            }
+            if (i < 65536) {
+                setTimeout(nextChunk, 1);
+                return;
+            }
+            initValidMovesDone= 1;
+            console.log("initValidMoves DONE");
+        }
+        setTimeout(nextChunk, 1);
+    }
+
+    function setAt(move) {
+        var movey= move >> 3;
+        var movex= move & 7;
+
+        unmarkAllCells();
+
+        flog[flog.length]= move;
+
+        f[move]= col;
+
+        var checkValid= function(fvv, label, base, mul) {
+            var valid= col == 2
+                ? validMoves[65535 - fvv]
+                : validMoves[fvv];
+            var i= valid.length;
+            while (i--) {
+                var cell= base + mul * valid[i];
+                console.log(label + ": valid(" + move + "," + '.OX'.substr(col, 1) + ")="
+                    + cell
+                    + ' (base=' + base + ' valid[' + i + ']=' + valid[i] + ')'
+                );
+
+                markCell(cell, 'valid-move');
+            }
+        }
+
+        fv[movey] |= col << (movex * 2);
+        checkValid(fv[movey], 'V ', movey * 8, 1);
+
+        // ---------
+
+        fh[movex] |= col << (movey * 2);
+        checkValid(fh[movex], 'H ', movex, 8);
+
+        // ---------
+
+        var movey1= movey - movex + 7;
+        var movex1= movex >= movey ? movey : movex;
+        var base1= movex >= movey ? movex - movey : (movey - movex) * 8;
+
+        console.log('movey1=' + movey1 + ' movex1=' + movex1);
+
+        // ---------
+
+        fd1[movey1] |= col << (movex1 * 2);
+
+        checkValid(fd1[movey1], 'D1', base1, 9);
+
+        // ---------
+
+        var movey2= movey + movex;
+        var movex2= (7 - movex) >= movey ? movex : 7 - movey;
+        var base2= (7 - movex) >= movey ? movey * 8 /*FALSCH*/ : 49 + movex + movey;
+
+        fd2[movey2] |= col << (movex2 * 2);
+
+        checkValid(fd2[movey2], 'D2', base2, -7);
+
+        console.log('movey2=' + movey2 + ' movex2=' + movex2 + ' base2=' + base2);
+
+
+        col= 3 - col;
+    }
+    
+    function undo() {
+        var move= flog.pop();
+        fv[move >> 3] &= ~(3 << ((move & 7) * 2));
+        f[move]= 0;
+
+        col= 3 - col;
+    }
+
+    function clickUndo() {
+        if (0 && flog.length <= 4) {
+            console.log("CAN'T UNDO");
+            return;
+        }
+        undo();
+        printBoard();
+    }
+  
+    function validMoves() {
+    }
+
+    function clickCell(move) {
+        if (f[move]) {
+            console.log("CELL ALREADY TAKEN");
+            return;
+        }
+        setAt(move);
+        printBoard();
+    }
+
+    function printBoard() {
+
+        var html= '<table>';
+        var i= 0;
+        for (var y= 0; y < 8; y++) {
+            html += '<tr>';
+            for (var x= 0; x < 8; x++) {
+                html += '<td onclick="clickCell(' + i + ')" id="cell' + i + '"><p class="num">' + i + '</p>' + '.OX'.substr(f[i++], 1) + '</a></td>';
+            }
+            html += '</tr>';
+        }
+        html += '</table>';
+        document.getElementById('board').innerHTML= html;
+
+        console.log(X(fv[3]));
+    }
+
+    function doOnload() {
+        initValidMoves();
+
+        var ready= function() {
+            if (!initValidMovesDone) {
+                setTimeout(ready, 100);
+                return;
+            }
+            initBoard();
+            printBoard();
+        }
+        setTimeout(ready, 100);
+        
+    }
+
+</script>
+<style>
+    #board table {
+        border: solid 1px #000;
+    }
+    #board table tr {
+        vertical-align: center;
+    }
+    #board table td {
+        border: solid 1px #000;
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        cursor: pointer;
+    }
+    #board .num {
+        font-size: 8px;
+        color: blue;
+        margin: 0;
+        padding: 0;
+    }
+    #board .valid-move {
+        background-color: yellow;
+    }
+    
+</style>
+<body onload="doOnload()">
+    <a href="javascript:clickUndo();">UNDO</a>
+    <hr>
+    <div id="board"></div>
+</body>
