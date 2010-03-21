@@ -111,6 +111,8 @@
         setAt2[36]();
         setAt2[35]();
 
+        // setAt2[29](); setAt2[37](); setAt2[45](); setAt2[38](); setAt2[42](); setAt2[22]();
+
         status("Let's go!", 1);
     }
 
@@ -406,148 +408,129 @@
 
         var result= [];
 
-        result.push(""
-            , " function() {"
-            , "     var pos, qi;"
-        );
-
         var shl= function(name, value) {
             if (value) return '(' + name + ' << ' + value + ')';
             return name;
         };
 
-        // fixme: name turn
-        var quickSetAt= function(dx, dy) {
-
-            var qmovex= movex;
-            var qmovey= movey;
-
-            var brackets= '   ';
-
-            for (var max= 1; max < 7; max++) {
-
-                qmovex += dx;
-                qmovey += dy;
-
-                if (qmovex < 0 || qmovex >= 8 || qmovey < 0 || qmovey >= 8) break;
-
-                var qmovex2= qmovex + qmovex;
-                var qmovey2= qmovey + qmovey;
-
-                var qmovedax= qmovex >= qmovey ? qmovey2 : qmovex2;
-                var qmoveday= qmovey - qmovex + 7;
-
-                var qmovedbx= (7 - qmovex) >= qmovey ? qmovex2 : 14 - qmovey2;
-                var qmovedby= qmovey + qmovex;
-
-                if (max > 1) {
-                    result.push(""
-                        , "     if (qi >= " + max + ") {"
-                    );
-                    brackets += '}';
-                }
-                
-                result.push(""
-                    , "         diff += colDiff + colDiff;"
-
-                    // console.log("QUICKSET x=" + qmovex + " y=" + qmovey + " diff=" + diff);
-
-                    , "         posH[" + qmovey + "]= posH[" + qmovey + "] & " + (~(3 << qmovex2)) + " | " + shl('col', qmovex2) + ";"
-                    , "         posV[" + qmovex + "]= posV[" + qmovex + "] & " + (~(3 << qmovey2)) + " | " + shl('col', qmovey2) + ";"
-                    , "         posDiag1[" + qmoveday + "]= posDiag1[" + qmoveday + "] & " + (~(3 << qmovedax)) + " | " + shl('col', qmovedax) + ";"
-                    , "         posDiag2[" + qmovedby + "]= posDiag2[" + qmovedby + "] & " + (~(3 << qmovedbx)) + " | " + shl('col', qmovedbx) + ";"
-                );
+        var encloseIfContainsCode= function(aBefore, aAfter, func) {
+            var lastLength= result.length;
+            func();
+            if (lastLength != result.length) {
+                for (i in aBefore) result.splice(lastLength++, 0, aBefore[i]);
+                for (i in aAfter) result.splice(result.length, 0, aAfter[i]);
             }
-            
-            result.push(""
-                , brackets
-            );
+        };
 
+        // fixme: name turn
+        var flip= function(posIndex, dx, dy) {
+
+            encloseIfContainsCode([ ""
+                    , "     if (qi= pos[" + posIndex + "]) {"
+                ], [ ""
+                    , "}"
+                ], function() {
+
+                    var qmovex= movex;
+                    var qmovey= movey;
+        
+                    var brackets= '';
+        
+                    for (var max= 1; max < 7; max++) {
+        
+                        qmovex += dx;
+                        qmovey += dy;
+        
+                        if (qmovex < 0 || qmovex >= 8 || qmovey < 0 || qmovey >= 8) break;
+        
+                        var qmovex2= qmovex + qmovex;
+                        var qmovey2= qmovey + qmovey;
+        
+                        var qmovedax= qmovex >= qmovey ? qmovey2 : qmovex2;
+                        var qmoveday= qmovey - qmovex + 7;
+        
+                        var qmovedbx= (7 - qmovex) >= qmovey ? qmovex2 : 14 - qmovey2;
+                        var qmovedby= qmovey + qmovex;
+        
+                        if (max > 1) {
+                            result.push(""
+                                , "     if (qi >= " + max + ") {"
+                            );
+                            brackets += '}';
+                        }
+                        
+                        result.push(""
+                            , "         diff += colDiff + colDiff;"
+        
+                            // console.log("QUICKSET x=" + qmovex + " y=" + qmovey + " diff=" + diff);
+        
+                            , "         posH[" + qmovey + "]= posH[" + qmovey + "] & " + (~(3 << qmovex2)) + " | " + shl('col', qmovex2) + ";"
+                            , "         posV[" + qmovex + "]= posV[" + qmovex + "] & " + (~(3 << qmovey2)) + " | " + shl('col', qmovey2) + ";"
+                            , "         posDiag1[" + qmoveday + "]= posDiag1[" + qmoveday + "] & " + (~(3 << qmovedax)) + " | " + shl('col', qmovedax) + ";"
+                            , "         posDiag2[" + qmovedby + "]= posDiag2[" + qmovedby + "] & " + (~(3 << qmovedbx)) + " | " + shl('col', qmovedbx) + ";"
+                        );
+                    }
+                    
+                    if (brackets.length) result.push(""
+                        , '   ' + brackets
+                    );
+                }
+            );
         };
 
         movex2= movex + movex;
         movey2= movey + movey;
 
         result.push(""
+            , " function() {"
+            , "     var pos, qi;"
             , "     boardLog[boardLog.length]= " + move + ";"
             , "     diff += colDiff;"
-
             , "     pos= posList[posH[" + movey + "] ^ colMask];"
             , "     posH[" + movey + "] |= " + shl('col', movex2) + ";"
-
-            , "     if (qi= pos[" + (movex2 + 11) + "]) {"
         );
-                        quickSetAt(-1, 0);
+        
+        flip(movex2 + 11, -1, 0);
+        flip(movex2 + 12,  1, 0);
 
         result.push(""
-            , "     }"
-            , "     if (qi= pos[" + (movex2 + 12) + "]) {"
+                , "     pos= posList[posV[" + movex + "] ^ colMask];"
+                , "     posV[" + movex + "] |= " + shl('col', movey2) + ";"
         );
-                        quickSetAt( 1, 0);
 
-        result.push(""
-            , "     }"
-
-            , "     pos= posList[posV[" + movex + "] ^ colMask];"
-            , "     posV[" + movex + "] |= " + shl('col', movey2) + ";"
-
-            , "     if (qi= pos[" + (movey2 + 11) + "]) {"
-        );
-                        quickSetAt( 0, -1);
-
-        result.push(""
-            , "     }"
-            , "     if (qi= pos[" + (movey2 + 12) + "]) {"
-        );
-                        quickSetAt( 0, 1);
+        flip(movey2 + 11, 0, -1);
+        flip(movey2 + 12, 0,  1);
 
         movexd= movex >= movey ? movey2 : movex2;
         moveyd= movey - movex + 7;
 
         result.push(""
-            , "     }"
-
             , "     pos= posList[posDiag1[" + moveyd + "] ^ colMask];"
             , "     posDiag1[" + moveyd + "] |= " + shl('col', movexd) + ";"
+        );
 
-            , "     if (qi= pos[" + (movexd + 11) + "]) {"
-        );
-                        quickSetAt(-1, -1);
-        result.push(""
-            , "     }"
-            , "     if (qi= pos[" + (movexd + 12) + "]) {"
-        );
-                        quickSetAt( 1, 1);
+        flip(movexd + 11, -1, -1);
+        flip(movexd + 12,  1,  1);
 
         movexd= (7 - movex) >= movey ? movex2 : 14 - movey2;
         moveyd= movey + movex;
 
         result.push(""
-            , "     }"
-
             , "     pos= posList[posDiag2[" + moveyd + "] ^ colMask];"
             , "     posDiag2[" + moveyd + "] |= " + shl('col', movexd) + ";"
-
-            , "     if (qi= pos[" + (movexd + 11) + "]) {"
         );
-                        quickSetAt(-1, 1);
+
+        flip(movexd + 11, -1,  1);
+        flip(movexd + 12,  1, -1);
 
         result.push(""
-            , "     }"
-            , "     if (qi= pos[" + (movexd + 12) + "]) {"
-        );
-                        quickSetAt( 1, -1);
-
-        result.push(""
-            , "     }"
-
             , "     col= 3 - col;"
             , "     colMask= 65535 - colMask;"
             , "     colDiff= -colDiff;"
             , " }"
         );
-        
-//        console.log(result.join("\n")); die();
+
+        // if (move == 22) { console.log(result.join("\n")); die(); }
 
         eval("setAt2[" + move + "]= (" + result.join("\n") + ");");
     }
@@ -688,6 +671,8 @@
         }
 
         endTime= new Date().getTime() + secs * 1000;
+        
+        // Consume last 1/3 of the time only playing the best three moves so far
         var resortTime= new Date().getTime() + secs * 666;
 
         var moveScore= {};
@@ -711,6 +696,12 @@
                     if (moves.length > 3) {
                         moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
                         moves.splice(3, 64);
+                        
+                        // Reset the scores.
+                        // TODO: Is that a good idea?
+                        for (var movei in moves) {
+                            moveScore[moves[movei]]= 0;
+                        }
                     }
                     resortTime= 0;
                 }
@@ -901,7 +892,7 @@
             if (moves[movei] == move) { ok= 1; break; }
         }
         if (!ok) {
-            status("Not a valid move!" + move, 2);
+            status("Not a valid move!", 2);
             return;
         }
         setAt2[move]();
