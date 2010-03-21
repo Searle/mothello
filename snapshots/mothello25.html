@@ -63,15 +63,53 @@
         
     }
 
+    // ====================================================================
+    //  OUTPUT
+    // ====================================================================
+
+    function printBoard() {
+
+        var html= '<table>';
+        var i= 0;
+        for (var y= 0; y < 8; y++) {
+            html += '<tr>';
+            for (var x= 0; x < 8; x++, i++) {
+                html += '<td onclick="clickCell(' + i + ')" id="cell' + i + '"></td>';
+            }
+            html += '</tr>';
+        }
+        html += '</table>';
+        document.getElementById('board').innerHTML= html;
+
+        refreshBoard();
+    }
+
+    function refreshBoard() {
+        for (var i= 0; i < 64; i++) {
+            (document.getElementById('cell' + i) || {}).innerHTML=
+                '<p class="num">' + i + '</p>' + '.OX'.substr(f[i], 1);
+        }
+
+        getValidMoves();
+
+    }
+
     function unmarkAllCells() {
         for (var i= 0; i < 64; i++) {
-            document.getElementById('cell' + i).class= '';
+            var el= document.getElementById('cell' + i);
+            if (!el) continue;
+            el.className= '';
         }
     }
 
     function markCell(cell, class_) {
-        document.getElementById('cell' + i).class= class_;
+xx= document.getElementById('cell' + cell);
+if (!xx) return;
+xx.className= class_;
+//         (document.getElementById('cell' + cell) || {}).className= class_;
     }
+
+    // ====================================================================
 
     function Y(move, pos0) {
 
@@ -148,18 +186,54 @@
         setTimeout(nextChunk, 1);
     }
 
+    function getValidMoves() {
+
+        var checkValid= function(move, fvv, label, base, mul, len) {
+            var valid= col == 2
+                ? validMoves[65535 - fvv]
+                : validMoves[fvv];
+            var i= valid.length;
+            while (i--) {
+                if (valid[i] > len) continue;
+
+                var cell= base + mul * valid[i];
+                console.log(label + ": valid(" + move + "," + '.OX'.substr(col, 1) + ")="
+                    + cell
+                    + ' (base=' + base + ' valid[' + i + ']=' + valid[i] + ')'
+                );
+
+                markCell(cell, 'valid-move');
+            }
+        }
+
+        unmarkAllCells();
+
+        for (var i= 0; i < 8; i++) {
+            checkValid(i, fv[i],  'V  ', i * 8, 1, 8);
+            checkValid(i, fh[i],  'H  ', i,     8, 8);
+        }
+        for (var i= 2; i < 8; i++) {
+            checkValid(i, fd1[i], 'D1A', 7 - i, 9,  i);
+            checkValid(i, fd2[i], 'D2A', i * 8, -7, i);
+        }
+        for (var i= 8; i < 13; i++) {
+            checkValid(i, fd1[i], 'D1B', (i - 7) * 8, 9,  15 - i);
+            checkValid(i, fd2[i], 'D2B', 49 + i,        -7, 15 - i);
+        }
+    }
+
     function setAt(move) {
         var movey= move >> 3;
         var movex= move & 7;
 
-        unmarkAllCells();
+        // unmarkAllCells();
 
         flog[flog.length]= move;
 
         f[move]= col;
 
         var checkValid= function(fvv, label, base, mul) {
-            var valid= col == 2
+            var valid= col == 1
                 ? validMoves[65535 - fvv]
                 : validMoves[fvv];
             var i= valid.length;
@@ -175,12 +249,12 @@
         }
 
         fv[movey] |= col << (movex * 2);
-        checkValid(fv[movey], 'V ', movey * 8, 1);
+        // checkValid(fv[movey], 'V ', movey * 8, 1);
 
         // ---------
 
         fh[movex] |= col << (movey * 2);
-        checkValid(fh[movex], 'H ', movex, 8);
+        // checkValid(fh[movex], 'H ', movex, 8);
 
         // ---------
 
@@ -194,17 +268,17 @@
 
         fd1[movey1] |= col << (movex1 * 2);
 
-        checkValid(fd1[movey1], 'D1', base1, 9);
+        // checkValid(fd1[movey1], 'D1', base1, 9);
 
         // ---------
 
         var movey2= movey + movex;
         var movex2= (7 - movex) >= movey ? movex : 7 - movey;
-        var base2= (7 - movex) >= movey ? movey * 8 /*FALSCH*/ : 49 + movex + movey;
+        var base2= (7 - movex) >= movey ? (movex + movey) * 8 /*FALSCH*/ : 49 + movex + movey;
 
         fd2[movey2] |= col << (movex2 * 2);
 
-        checkValid(fd2[movey2], 'D2', base2, -7);
+        // checkValid(fd2[movey2], 'D2', base2, -7);
 
         console.log('movey2=' + movey2 + ' movex2=' + movex2 + ' base2=' + base2);
 
@@ -226,36 +300,16 @@
             return;
         }
         undo();
-        printBoard();
+        refreshBoard();
     }
   
-    function validMoves() {
-    }
-
     function clickCell(move) {
         if (f[move]) {
             console.log("CELL ALREADY TAKEN");
             return;
         }
         setAt(move);
-        printBoard();
-    }
-
-    function printBoard() {
-
-        var html= '<table>';
-        var i= 0;
-        for (var y= 0; y < 8; y++) {
-            html += '<tr>';
-            for (var x= 0; x < 8; x++) {
-                html += '<td onclick="clickCell(' + i + ')" id="cell' + i + '"><p class="num">' + i + '</p>' + '.OX'.substr(f[i++], 1) + '</a></td>';
-            }
-            html += '</tr>';
-        }
-        html += '</table>';
-        document.getElementById('board').innerHTML= html;
-
-        console.log(X(fv[3]));
+        refreshBoard();
     }
 
     function doOnload() {
@@ -270,7 +324,6 @@
             printBoard();
         }
         setTimeout(ready, 100);
-        
     }
 
 </script>
