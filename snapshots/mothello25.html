@@ -110,6 +110,26 @@
     // ====================================================================
     // ====================================================================
 
+    //  The entries for all possible positions for one row are stored in the
+    //  posList array. The index consists of 2 * 8 bits for the 8 cells. 2 bits
+    //  are used as follows: 0= empty, 1=white, 2=black, 3=empty.
+    //
+    //  The entries can be used for either opponent. One of the opponent
+    //  looks up posList[n], the other posList[n ^ 0xffff].
+    //
+    //  Each entry look as follows:
+    //  [ valid2, valid1, valid0,
+    //      newpos0, newpos1, newpos2, newpos3, newpos4, newpos5, newpos6, newpos7,
+    //      flipped
+    //  ]
+    //
+    //  validN      Valid moves for white in that position.
+    //
+    //  newposN     New position if white's move is N.
+    //              The new position includes the flipped captures stones if there are any.
+    //
+    //  flippedN    Number of flipped stones if white's move is N.
+
     function initPosList() {
     
         posList= new Array(65536);
@@ -123,7 +143,7 @@
                 want1, want2, wantpos,
                 j,
                 valid,
-                newpos;
+                flipped;
 
             for (chunk= 8192; chunk--; pos0++) {
     
@@ -131,8 +151,8 @@
                 had= want1= want2= 0;
                 had1pos= wantpos= -1;
                 valid= [ 9, 9, 9 ];
-                newposList= [ pos0, pos0, pos0, pos0, pos0, pos0, pos0, pos0 ];
-                // newposList= [ undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined ];
+                newpos= [ pos0, pos0, pos0, pos0, pos0, pos0, pos0, pos0 ];
+                flipped= [ 0, 0, 0, 0, 0, 0, 0, 0 ];
                 validi= 0;
     
                 for (j= 0; j < 8; j++) {
@@ -143,15 +163,16 @@
                                 valid[validi++]= wantpos;
                                 
                                 // Flip captured stones
-                                newposList[wantpos] ^=
+                                newpos[wantpos] ^=
                                     ~(-1 << (j + j - wantpos - wantpos - 2))
                                     << (wantpos + wantpos + 2);
+                                flipped[wantpos] += j - wantpos -1;
                             }
                             wantpos= -1;
                         }
                         had= 1;
                         want2= 0;
-                        newposList[j]= undefined;
+                        newpos[j]= undefined;
                     }
                     else if ((pos & 3) == 2) {
                         if (had == 1) {
@@ -159,33 +180,31 @@
                             had1pos= j;
                         }
                         want2= 1;
-                        newposList[j]= undefined;
+                        newpos[j]= undefined;
                     }
                     else {
                         if (had == 2) {
                             valid[validi++]= j;
 
                             // Flip captured stones
-                            if (1) newposList[j] ^=
+                            newpos[j] ^=
                                 ~(-1 << (j + j - had1pos - had1pos))
                                 << (had1pos + had1pos);
-
+                            flipped[j] += j - had1pos;
                         }
-                        // else {
-                            wantpos= j;
-                        // }
+                        wantpos= j;
                         had= want1= want2= 0;
 
-if (1)
-                        newposList[j]= newposList[j]
+                        newpos[j]= newpos[j]
                             & ~(3 << (j + j))
                             |   1 << (j + j);
                     }
                     pos >>= 2;
                 }
 
-                // valid[3]= newpos;
-                posList[pos0]= valid.sort().reverse().concat(newposList);
+                // Additionally to it's purpose, "concat" clones the array, which is
+                // what we need here.
+                posList[pos0]= valid.sort().reverse().concat(newpos).concat(flipped);
 
                 // console.log(valid);
             }
@@ -198,10 +217,6 @@ if (1)
         }
         setTimeout(nextChunk, 1);
     }
-
-    // posList:
-    // [ p0, p1, p2, 8 werte für col==1, 8 werte für col==2 ]
-    // pn= xpos oder 9
 
     function getValidMoves() {
 
