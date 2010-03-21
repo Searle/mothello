@@ -257,79 +257,12 @@
     // It's pretty much the bootleneck of the whole computaion.
     // At least that's what Firebug says.
     //
-    function makeGetValidMoves1() {
-
-        var result= [];
-
-        result.push(""
-            , " function() {"
-            , "     var check= {};"     // HASH???
-            , "     var pos, cell;"
-        );
-
-        var checkValid= function(posArray, move, base, mul, len) {
-
-            result.push(""
-                , "     pos= posList[" + posArray + "[" + move + "] ^ colMask];"
-            );
-
-            if (mul == -1) mul= ' - ';
-            else if (mul == 1) mul= (base ? ' + ' : '');
-            else if (mul > 0) mul= (base ? ' + ' : '') + mul + ' * ';
-            else mul= (base ? ' - ' : ' -') + -mul + ' * ';
-
-            if (base == 0) base= '';
-
-            for (var i= 0; i < 3; i++) {
-                var cell= base + mul + "pos[" + i + "]"
-                result.push(""
-                    , "     if (pos[" + i + "] < " + len + ") {"
-                    , "         check[" + cell + "]= 1;"
-                );
-            };
-            result.push(""
-                , "     }}}"
-            );
-        }
-
-        for (var i= 0; i < 8; i++) {
-            checkValid('posH',      i, i * 8, 1, 8);
-            checkValid('posV',      i, i,     8, 8);
-        }
-        for (var i= 2; i < 8; i++) {
-            checkValid('posDiag1',  i, 7 - i, 9,  i + 1);
-            checkValid('posDiag2',  i, i * 8, -7, i + 1);
-        }
-        for (var i= 8; i < 13; i++) {
-            checkValid('posDiag1',  i, (i - 7) * 8, 9,  15 - i);
-            checkValid('posDiag2',  i, 49 + i,      -7, 15 - i);
-        }
-
-        result.push(""
-            , "     var result= [];"
-
-            , "     for (var cell in check) {"
-            , "         cell= parseInt(cell);"
-            , "         var score= cellScore[cell];"
-            , "         while (score--) result[result.length]= cell;"
-            , "     }"
-
-            , "     return result;"
-            , " }"
-        );
-
-        console.log(result.join("\n"));
-
-        eval("getValidMoves= (" + result.join('') + ");");
-    }
-
     function makeGetValidMoves() {
 
         var result= [];
 
         result.push(""
             , " function() {"
-//            , "     var check= validMovesCheck.concat();"
             , "     var cellScore2= cellScore.concat();"
             , "     var valid, cell, score;"
             , "     var result= [];"
@@ -351,29 +284,10 @@
             for (var i= 0; i < 3; i++) {
                 result.push(""
                     , "     if (valid[" + i + "] < " + len + ") {"
-//                    , "         cell= " + base + mul + "valid[" + i + "];"
-
-//                    , "         if (score= cellScore2[cell]) {"
                     , "         if (score= cellScore2[" + base + mul + "valid[" + i + "]]) {"
                     , "             cell= " + base + mul + "valid[" + i + "];"
                     , "             cellScore2[cell]= 0;"
                     , "             while (score--) result[result.length]= cell;"
-
-
-/*
-                    , "         if (check[cell] == 0) {"
-                    , "             check[cell]= 1;"
-                    , "             score= cellScore[cell];"
-                    , "             while (score--) result[result.length]= cell;"
-*/
-/*
-                    , "             result[result.length]= cell;"
-                    , "             if (score >= 2) { result[result.length]= cell;"
-                    , "                 if (score >= 3) { result[result.length]= cell;"
-                    , "                     if (score >= 4) { result[result.length]= cell;"
-                    , "                         if (score >= 6) { result[result.length]= cell; result[result.length]= cell;"
-                    , "             }}}}"
-*/
                     , "         }"
                 );
             };
@@ -400,12 +314,12 @@
             , " }"
         );
 
-        console.log(result.join("\n"));
+        // console.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
 
-
+/*
     function makeGetValidMoves2() {
 
         var result= [];
@@ -417,7 +331,7 @@
             result.push(""
                 , "     if (recalcValid" + recalcVar + " & " + (1 << recalcBit) + ") {"
 
-, "         console.log('recalcing: " + recalcVar + ", " + recalcBit + "');"
+                // , "         console.log('recalcing: " + recalcVar + ", " + recalcBit + "');"
 
                 , "         pos= posList[" + posArray + "[" + move + "] ^ colMask];"
             );
@@ -448,7 +362,7 @@
             , "         return validMoves;"
             , "     }"
 
-, "         console.log('=====================');"
+            // , "     console.log('=====================');"
 
             , "     var pos, cell;"
             , "     var result= [];"
@@ -491,6 +405,7 @@
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
+*/
 
     function unique(a) {
         var lookup= [];
@@ -1287,7 +1202,7 @@
         background-color: #DDD;
     }
     .debug {
-        x-display: none;
+        display: none;
     }
     #head {
         background-color: black;        
