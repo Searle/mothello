@@ -53,6 +53,8 @@
     var validMovesCheck;        // Flag indicating if the board is already initialized
     var validMoves;
 
+    var zero64;                 // 64 x 0
+
 /*
     var recalcValidHV;
     var recalcValidDiag;
@@ -69,7 +71,7 @@
 
     var setAt;
 
-    var computerCol= 1;
+    var computerCol= 0;
 
     // ====================================================================
     //  Core
@@ -134,7 +136,13 @@
         setAt[35]();
         setAt[36]();
 
-        // setAt[29](); setAt[37](); setAt[45](); setAt[38](); setAt[42](); setAt[22]();
+        // setAt[37](); setAt[29]();  setAt[21](); setAt[30]();  setAt[19](); setAt[44]();
+        // setAt[29](); setAt[37]();  setAt[45](); setAt[38]();  setAt[42](); setAt[22]();
+
+        // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); 
+        // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); setAt[22](); setAt[58](); setAt[49](); setAt[29](); setAt[4](); setAt[56]();
+
+        // setAt[26](); setAt[20](); setAt[45](); setAt[42](); setAt[43](); setAt[44](); setAt[21](); setAt[46](); setAt[51](); setAt[22](); setAt[41](); setAt[58](); setAt[54](); setAt[19](); setAt[50](); setAt[63](); setAt[47](); setAt[33](); setAt[18](); setAt[10](); setAt[9](); setAt[0](); setAt[61](); setAt[52](); setAt[1](); setAt[11](); setAt[3](); setAt[37](); setAt[49](); setAt[56](); setAt[25](); setAt[17](); setAt[57](); setAt[48](); setAt[53](); setAt[40](); setAt[29](); setAt[8](); setAt[60](); setAt[2](); setAt[13](); setAt[4](); setAt[6](); setAt[32](); setAt[23](); setAt[31](); setAt[16](); setAt[24](); setAt[39](); setAt[14](); setAt[15](); setAt[34](); setAt[5](); setAt[62](); setAt[12](); setAt[59](); pass(); setAt[55](); setAt[38]();
 
         status("Let's go!", 1);
     }
@@ -257,6 +265,72 @@
     // It's pretty much the bootleneck of the whole computaion.
     // At least that's what Firebug says.
     //
+    function makeGetValidMoves1() {
+
+        var result= [];
+
+        result.push(""
+            , " function() {"
+            , "     var check= {};"     // HASH???
+            , "     var pos, cell;"
+        );
+
+        var checkValid= function(posArray, move, base, mul, len) {
+
+            result.push(""
+                , "     pos= posList[" + posArray + "[" + move + "] ^ colMask];"
+            );
+
+            if (mul == -1) mul= ' - ';
+            else if (mul == 1) mul= (base ? ' + ' : '');
+            else if (mul > 0) mul= (base ? ' + ' : '') + mul + ' * ';
+            else mul= (base ? ' - ' : ' -') + -mul + ' * ';
+
+            if (base == 0) base= '';
+
+            for (var i= 0; i < 3; i++) {
+                var cell= base + mul + "pos[" + i + "]"
+                result.push(""
+                    , "     if (pos[" + i + "] < " + len + ") {"
+                    , "         check[" + cell + "]= 1;"
+                );
+            };
+            result.push(""
+                , "     }}}"
+            );
+        }
+
+        for (var i= 0; i < 8; i++) {
+            checkValid('posH',      i, i * 8, 1, 8);
+            checkValid('posV',      i, i,     8, 8);
+        }
+        for (var i= 2; i < 8; i++) {
+            checkValid('posDiag1',  i, 7 - i, 9,  i + 1);
+            checkValid('posDiag2',  i, i * 8, -7, i + 1);
+        }
+        for (var i= 8; i < 13; i++) {
+            checkValid('posDiag1',  i, (i - 7) * 8, 9,  15 - i);
+            checkValid('posDiag2',  i, 49 + i,      -7, 15 - i);
+        }
+
+        result.push(""
+            , "     var result= [];"
+
+            , "     for (var cell in check) {"
+            , "         cell= parseInt(cell);"
+            , "         var score= cellScore[cell];"
+            , "         while (score--) result[result.length]= cell;"
+            , "     }"
+
+            , "     return result;"
+            , " }"
+        );
+
+        console.log(result.join("\n"));
+
+        eval("getValidMoves= (" + result.join('') + ");");
+    }
+
     function makeGetValidMoves() {
 
         var result= [];
@@ -319,7 +393,7 @@
         eval("getValidMoves= (" + result.join('') + ");");
     }
 
-/*
+
     function makeGetValidMoves2() {
 
         var result= [];
@@ -405,7 +479,6 @@
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
-*/
 
     function unique(a) {
         var lookup= [];
@@ -598,18 +671,30 @@
     }
 
     function finished() {
-        return boardLog.length < 4
-            || boardLog.length >= 64
-            || (boardLog[boardLog.length - 2] < 0 && boardLog[boardLog.length - 1]);
+        if (boardLog.length < 4) return true;
+        if (boardLog[boardLog.length - 2] < 0 && boardLog[boardLog.length - 1] < 0) return true;
+        if (!getValidMoves().length) {
+            swapCol();
+            var fin= getValidMoves().length == 0;
+            swapCol();
+            return fin;
+        }
+        return false;
     }
-  
-    function pass() {
-        if (boardLog.length >= 64) return;
 
-        boardLog[boardLog.length]= -1;
+    function swapCol() {
         col= 3 - col;
         colMask= 65535 - colMask;
         colDiff= -colDiff;
+    }
+      
+    function pass() {
+        if (finished()) return;
+
+        // if (boardLog.length >= 64) return;
+
+        boardLog[boardLog.length]= -1;
+        swapCol();
     }
 
     // slow! but doesn't matter, not used by computer player
@@ -656,7 +741,7 @@
             capPosDiag2[y]= posDiag2[y];
         }
 
-        capBoardLog.splice(boardLog.length, 64);
+        capBoardLog.splice(boardLog.length, 999);
         for (var i= boardLog.length; i--; ) {
             capBoardLog[i]= boardLog[i];
         }
@@ -696,7 +781,7 @@
             posDiag2[y]= capPosDiag2[y];
         }
 
-        boardLog.splice(capBoardLog.length, 64);
+        boardLog.splice(capBoardLog.length, 999);
         for (var i= capBoardLog.length; i--; ) {
             boardLog[i]= capBoardLog[i];
         }
@@ -724,47 +809,20 @@
         diff= capDiff;
     }
 
-
-    function restoreBoard_old() {
-
-        var tmp;
-
-        tmp= posH; posH= capPosH; capPosH= tmp;
-        tmp= posV; posV= capPosV; capPosV= tmp;
-
-        tmp= posDiag1; posDiag1= capPosDiag1; capPosDiag1= tmp;
-        tmp= posDiag2; posDiag2= capPosDiag2; capPosDiag2= tmp;
-
-        tmp= boardLog; boardLog= capBoardLog; capBoardLog= tmp;
-/*
-        validHV= capValidHV;
-        validDiag= capValidDiag;
-
-        validMoves= capValidMoves;
-
-        recalcValidHV= capRecalcValidHV;
-        recalcValidDiag= capRecalcValidDiag;
-*/
-        col= capCol;
-        colMask= capColMask;
-        colDiff= capColDiff;
-
-        diff= capDiff;
-    }
-
     function computeMove(tip) {
         var moves= unique(getValidMoves());
         if (moves.length == 0) {
             status('Pass. I can\'t make a move :-(', 3);
             pass();
             refreshBoard();
-            return;
+            return 0;
         }
 
         var secs= document.getElementById('time').value;
         if (secs < 1) secs= 1;
 
         var games= 0;
+        var gamesPerMove= 0;
 
         var doMove= function(move) {
             if (!tip) {
@@ -773,6 +831,7 @@
                 markCell(move, 'last-move');
             }
             else {
+                updateUI();
                 markCell(move, 'tip-move');
             }
     
@@ -784,33 +843,72 @@
 
         if (moves.length == 1) {
             doMove(moves[0]);
-            return;
+            return 1;
         }
 
         endTime= new Date().getTime() + secs * 1000;
+
+        var cleanupTime= new Date().getTime() + secs * 333;
         
         // Consume last 1/3 of the time only playing the best three moves so far
         var resortTime= new Date().getTime() + secs * 666;
 
+/*
         var moveScore= [];
         for (var movei in moves) {
             moveScore[moves[movei]]= 0;
         }
+*/
+        captureBoard();
+
+        var moves2= [];
+        var moveScore2= [];
+
+        for (var movei in moves) {
+            var move= moves[movei];
+
+            setAt[move]();
+            moves2[movei]= unique(getValidMoves());
+            moveScore2[movei]= zero64.concat();
+            restoreBoard();
+        }
 
         var dots= '';
 
-        captureBoard();
+        var time;
+        var nextMoves;
+        var nextMove;
+        var move, movei;
+        var move2, movei2;
+
+        updateUI();
 
         var inner= function() {
 
-            if (new Date().getTime() < endTime) {
+            time= new Date().getTime();
+
+            if (time < endTime) {
 
                 status("Thinking" + dots, 0, 1);
                 dots= dots.length > 30 ? '' : dots + '.';
 
                 // If a certain amount of time is used up, concentrate on the
                 // so far best three moves.
-                if (resortTime && new Date().getTime() > resortTime) {
+
+                if (cleanupTime && time > cleanupTime) {
+
+                    for (movei in moves) {
+                        move= moves[movei];
+
+                        for (movei2 in moves2[movei]) {
+                            move2= moves2[movei][movei2];
+
+                        }
+                    }
+
+                }
+/*
+                if (resortTime && time > resortTime) {
                     console.log("Resorting...");
                     if (moves.length > 3) {
                         moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
@@ -824,45 +922,161 @@
                     }
                     resortTime= 0;
                 }
+*/
 
-                var nextMoves;
-                var nextMove;
-                var movei;
+                var nextTime= time + 100;
+                while(true) {
 
-                for (var n= 10; n--; ) {
+                    time= new Date().getTime();
+                    if (time > endTime || time > nextTime) break;
+
+                    gamesPerMove++;
+
                     for (movei in moves) {
-                        restoreBoard();
-                        setAt[moves[movei]]();
+                        move= moves[movei];
 
-                        while (1) {
-                            nextMoves= getValidMoves();
-                            if (nextMoves.length == 0) {
-                                pass();
+                        for (movei2 in moves2[movei]) {
+                            move2= moves2[movei][movei2];
+
+                            restoreBoard();
+                            setAt[move]();
+
+// console.log(moves2[move]);
+                            setAt[move2]();
+
+                            while (1) {
                                 nextMoves= getValidMoves();
-                                if (nextMoves.length == 0) break;
+                                if (nextMoves.length == 0) {
+                                    pass();
+                                    nextMoves= getValidMoves();
+                                    if (nextMoves.length == 0) break;
+                                }
+                                nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
+                                setAt[nextMove]();
+                            }        
+
+                            if (capCol == 1) {
+                                if (diff > 0) moveScore2[movei][movei2]++;
+                                if (diff < 0) moveScore2[movei][movei2]--;
                             }
-                            nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
-                            setAt[nextMove]();
-                        }        
+                            else {
+                                if (diff < 0) moveScore2[movei][movei2]++;
+                                if (diff > 0) moveScore2[movei][movei2]--;
+                            }
 
-                        if (capCol == 1) {
-                            if (diff > 0) moveScore[moves[movei]]++;
-                            if (diff < 0) moveScore[moves[movei]]--;
-                        }
-                        else {
-                            if (diff < 0) moveScore[moves[movei]]++;
-                            if (diff > 0) moveScore[moves[movei]]--;
+                            games++;
                         }
 
-                        games++;
                     }
                 }
-                setTimeout(inner, 10);
+                setTimeout(inner, 1);
                 return;
             }
 
             restoreBoard();
             endTime= 0;
+
+            var r= function(v) { var s= '        ' + (Math.round(v * 10) / 10); return s.substr(s.length - 6); }
+
+            var moveScore= [];
+            for (var movei in moves) {
+                var move= moves[movei];
+
+                moveScore[move]= 0;
+
+                if (col == -1) {
+
+                    var s1= '';
+
+                    var smin= 99999999;
+                    var sum= 0;
+                    var sum1= 0;
+                    for (movei2= moves2[movei].length; movei2--; ) {
+                        var score= moveScore2[movei][movei2];
+                        if (score < smin) smin= score;
+
+                        var score0;
+                        
+                        sum += (score0= Math.exp(score - gamesPerMove, 8));
+                        sum1 += score;
+
+                        // s1 += ' ' + moves2[movei][movei2] + ':' + score;
+                        // s1 += '(' + r(score0) + ')';
+                    }
+
+                    sum= Math.exp(sum, 1/8) * smin / moves2[movei].length;
+
+                    moveScore[move]= Math.floor(sum * 1000);
+
+                    console.log(('' + (move + 100)).substr(1) + ' ' + moveScore[move] + '(' + sum1 + ') -> ' + s1);
+
+// A3: -17 ...
+// A5: <f>(A3-25)^$A$1</f>
+// K5: <f>(SUM($A5:$G5)^(1/$A$1)*($A3)/COUNT($A3:$G3))</f>
+
+
+                }
+
+                if (col == 1) {
+                    var d1= 0;
+                    var d2= 0;
+                    var n= 0;
+                    var s1= '';
+
+                    for (movei2= moves2[movei].length; movei2--; ) {
+                        var score= moveScore2[movei][movei2];
+                        if (score < smin) smin= score;
+                        if (score > smax) smax= score;
+                        d1 += score;
+                        score= score < 0 ? -Math.pow(-score, 1.1) : Math.pow(score, 0.9);
+                        d2 += score;
+                        n++;
+                        s1 += ' ' + moves2[movei][movei2] + ':' + moveScore2[movei][movei2];
+                        s1 += '(' + r(score) + ')';
+                    }
+
+                    var d= d1 / n;
+
+                    var s= ('' + (move + 100)).substr(1) + ' -> ';
+
+                    var smin= 99999999;
+                    var smax= -99999999;
+
+                    var dd1 = 0;
+
+                    for (movei2= moves2[movei].length; movei2--; ) {
+                        var score= moveScore2[movei][movei2];
+                        dd1 += score > d ? d : score;
+                    }
+
+                    // var score2= d + Math.pow(smax - d, 1.1) - Math.pow(d - smin, 1.1);
+
+                    s += ' sum=' + r(d1);
+                    s += ' d=' + r(d);
+                    s += ' dd1=' + r(dd1 / n);
+
+                    // s += ' ~' + r(Math.pow(smax - d, 1.1)) + ' ~' + r(Math.pow(d - smin, 1.1));
+                    // s += ' max=' + r(smax) + ' min=' + r(smin);
+
+                    s += ' esum=' + r(d2);
+                    s += ' #=' + gamesPerMove;
+                    // s += s1;
+                    
+                    console.log(s);
+
+                    moveScore[move]= Math.floor(100 * dd1 / n);
+
+                }
+
+                if (col == 2) {
+
+                    var sum= 0;
+                    for (movei2 in moves2[movei]) {
+                         sum += moveScore2[movei][movei2];
+                    }
+                    moveScore[move]= sum / moves2[movei].length;
+                }
+            }
     
             moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
 
@@ -880,6 +1094,7 @@
         }
 
         setTimeout(inner, 10);
+        return 1;
     }
 
     // ====================================================================
@@ -937,19 +1152,17 @@
 
     function printBoard() {
 
-        var html= '<table>';
+        var html= '<table cellspacing="0" cellpadding="0">';
         var i= 0;
         for (var y= 0; y < 8; y++) {
             html += '<tr>';
             for (var x= 0; x < 8; x++, i++) {
-                html += '<td onclick="clickCell(' + i + ')" id="cell' + i + '"></td>';
+                html += '<td onclick="clickCell(' + i + ')" id="cell' + i + '"><div class="cell"></div></td>';
             }
             html += '</tr>';
         }
         html += '</table>';
         document.getElementById('board').innerHTML= html;
-
-        refreshBoard();
     }
 
     function refreshBoard() {
@@ -971,6 +1184,8 @@
 
         unmarkAllCells();
         for (var i in cells) markCell(cells[i], 'valid-move-' + col);
+
+        updateUI();
     }
 
     function unmarkAllCells() {
@@ -1000,6 +1215,15 @@
     }
 
     function clickDump(posXName) {
+        if (posXName == 'sit') {
+            var s= '';
+            for (var i= 4; i < boardLog.length; i++) {
+                s += boardLog[i] < 0 ? 'pass(); ' : 'setAt[' + boardLog[i] + '](); ';
+                if (i & 1) s += ' ';
+            }
+            console.log(s);
+            return;
+        }
         if (posXName == 'validMoves') {
             console.log(getValidMoves());
             return
@@ -1019,17 +1243,42 @@
     //  UI
     // ====================================================================
 
-    function isComputersTurn() {
-        if (endTime) {
-            status("Please wait until the computer made it's move!");
-            return 1;
+    function computing() {
+        if (!initPosListDone) {
+            status("Please wait until the game is ready!");
+            return true;
         }
-        return 0;
+        if (endTime) {
+            status("Please wait until the computer has made it's move!");
+            return true;
+        }
+        return false;
+    }
+
+    function setComputerCol(newCol) {
+        computerCol= newCol;
+    }
+
+    function updateUI() {
+            var begun= boardLog.length > 4;
+            var is_finished= finished();
+            var computing= endTime;
+
+            var up= function(button, on) {
+                document.getElementById('button_' + button).className= on ? 'button' : 'button_off';
+            };
+
+            // <a id="button_new_game" class="button" href="javascript:clickNewGame();">New</a>
+            up("new_game",  !computing && begun);
+            up("undo",      !computing && begun);
+            up("pass",      !computing && !is_finished);
+            up("tip",       !computing && !is_finished);
+            up("stop",      computing);
+            up("settings",  true);
     }
 
     function clickCell(move) {
-        if (isComputersTurn()) return;
-        if (finished()) return;
+        if (computing() || finished()) return;
         
         if (colAtCell(move)) {
             status("Cell is already taken!", 3);
@@ -1048,28 +1297,29 @@
 
         setAt[move]();
         refreshBoard();
+        defaultStatus();
         markCell(move, 'last-move');
 
-        if (computerCol == col) {
+        if (computerCol & col) {
             computeMove();
         }
     }
 
     function clickNewGame() {
-        if (isComputersTurn()) return;
+        if (computing() || boardLog.length <= 4) return;
 
         initBoard();
         refreshBoard();
     }
 
     function clickUndo() {
-        if (isComputersTurn()) return;
+        if (computing()) return;
         if (boardLog.length <= 4) {
             console.log("CAN'T UNDO");
             return;
         }
 
-        undo(computerCol ? 2 : 1);
+        undo(computerCol == 1 || computerCol == 2 ? 2 : 1);
         refreshBoard();
         if (boardLog.length > 4 && boardLog[boardLog.length - 1] > 0) {
             markCell(boardLog[boardLog.length - 1], 'last-move');
@@ -1078,38 +1328,75 @@
     }
 
     function clickPass() {
-        if (isComputersTurn()) return;
-        if (finished()) return;
+        if (computing() || finished()) return;
 
         pass();
         refreshBoard();
         defaultStatus();
 
-        if (computerCol == col) {
+        if (computerCol & col) {
             computeMove();
         }
     }
 
     function clickTip() {
-        if (isComputersTurn()) return;
-        if (finished()) return;
+        if (computing() || finished()) return;
 
         refreshBoard();
         computeMove(1);
+    }
+
+    function clickStop() {
+        if (!initPosListDone || !computing()) return;
+        
+        // status("Stopping computation. Please hold on...");
+        endTime= 1;
+    }
+    
+    function clickSettings() {
+         if (!initPosListDone) return;
+
+         document.getElementById('computer_col_' + computerCol).checked= 1;
+         document.getElementById('settings').style.display= 'block';
+    }
+
+    function clickCloseSettings() {
+        document.getElementById('settings').style.display= 'none';
+        if (!computing() && (computerCol & col)) {
+            computeMove();
+        }
+    }
+
+    function clickAuto() {
+        var oldCol= computerCol;
+        computerCol= 3;
+
+        var wait= function() {
+            if (!computing()) {
+                if (!computeMove() && !computeMove()) {
+                    computerCol= oldCol;
+                    console.log("GAME IS OVER");
+                    return;
+                }
+            }
+            setTimeout(wait, 1000);
+        }
+        wait();
     }
 
     function doOnload() {
 
         status("Initializing, please hold on a second...");
 
-        initCellScore();
+        zero64= [];
+        for (var i= 64; i--; ) zero64[i]= 0;
 
+        initCellScore();
         makeGetValidMoves();
+        printBoard();
 
         setAt= []
-        for (var i= 0; i < 64; i++) {
-            makeSetAt(i);
-        }
+        for (var i= 64; i--; ) makeSetAt(i);
         
         initPosList();
 
@@ -1119,7 +1406,7 @@
                 return;
             }
             initBoard();
-            printBoard();
+            refreshBoard();
         }
         setTimeout(ready, 100);
     }
@@ -1132,6 +1419,52 @@
         border: 0;
         margin: 0;
     }
+    #head {
+        background-color: black;        
+        padding: 10px 10px ;
+        margin: 0 0 8px 0;
+        color: #FFF;
+        text-align: right;
+    }
+    #head h1 {
+        float: left;
+        text-weight: bold;
+        font-size: 100%;
+        padding: 0;
+        margin: 0;
+        color: #F2D4C0;
+    }
+    #head a {
+        color: #FFF;
+    }
+    #body {
+        padding: 10px;
+    }
+    #settings {
+        position: relative;
+        z-index: 1;
+        display: none;
+    }
+    #settings .container {
+        position: absolute;
+        top: 1em;
+        left: 1em;
+        width: 300px;
+        border: 1px solid black;
+        background-color: #FFF;
+        padding: 10px;
+    }
+    #settings .p {
+        display: block;
+        padding: 0.4em;
+    }
+    #settings .p .title {
+        padding-top: 0.6em;
+        border-bottom: 3px solid #988579;
+    }
+    #settings .right {
+        text-align: right;
+    }
     #board table {
         border-collapse: collapse;
         border: solid 6px #988579;
@@ -1142,8 +1475,6 @@
     }
     #board table td {
         border: solid 3px #B8A192;
-        width: 40px;
-        height: 40px;
         text-align: center;
         cursor: pointer;
     }
@@ -1184,19 +1515,31 @@
     #board .tip-move {
         background-color: #52E574;  /* green */
     }
+    #status_outer {
+        overflow: hidden;
+        margin: 16px 0 10px 0;
+    }
+    #status {
+        width: 1000px;
+    }
     #console {
         padding: 20px;
         margin: 20px;
         border: 1px solid #888;
     }
-    .button {
+    .button, .button_off {
         -moz-border-radius: 6px;
         -webkit-border-radius: 6px;
-        padding: 4px 10px;
-        border: solid 2px black;
+        padding: 4px 8px;
+        margin-right: 4px;
+        border: solid 2px #000;
         background-color: #EEE;
         text-decoration: none;
         color: #000;
+    }
+    .button_off {
+        color: #CCC;
+        border-color: #444;
     }
     .button:hover {
         background-color: #DDD;
@@ -1204,41 +1547,23 @@
     .debug {
         display: none;
     }
-    #head {
-        background-color: black;        
-        padding: 10px 20px ;
-        margin: 0 0 20px 0;
-        color: #FFF;
-        text-align: right;
-    }
-    #head h1 {
-        float: left;
-        text-weight: bold;
-        font-size: 100%;
-        padding: 0;
-        margin: 0;
-        color: #F2D4C0;
-    }
-    #head a {
-        color: #FFF;
-    }
-    #body {
-        padding: 10px;
-    }
 </style>
 </head>
 <body onload="doOnload()">
     <div id="head">
         <h1>MoThello</h1>
-        (c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a>
+        <small>(c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a></small>
     </div>
     <div id="body">
         <div>
-            <a class="button" href="javascript:clickNewGame();">New Game</a>
-            <a class="button" href="javascript:clickUndo();">Undo</a>
-            <a class="button" href="javascript:clickPass();">Pass</a>
-            <a class="button" href="javascript:clickTip();">Tip</a>
-            Time: <input id="time" size="2" value="8">s
+            <table cellspacing="0" cellpadding="0"><tr>
+                <td><a id="button_new_game" class="button_off" href="javascript:clickNewGame();">New</a></td>
+                <td><a id="button_undo"     class="button_off" href="javascript:clickUndo();">Undo</a></td>
+                <td><a id="button_pass"     class="button_off" href="javascript:clickPass();">Pass</a></td>
+                <td><a id="button_tip"      class="button_off" href="javascript:clickTip();">Tip</a></td>
+                <td><a id="button_stop"     class="button_off" href="javascript:clickStop();">Stop</a></td>
+                <td><a id="button_settings" class="button_off" href="javascript:clickSettings();">Settings</a></td>
+            </tr></table>
         
             <span class="debug">
                 <a class="button" href="javascript:clickDump('posH');">posH</a>
@@ -1246,11 +1571,22 @@
                 <a class="button" href="javascript:clickDump('posDiag1');">posDiag1</a>
                 <a class="button" href="javascript:clickDump('posDiag2');">posDiag2</a>
                 <a class="button" href="javascript:clickDump('validMoves');">validMoves</a>
+                <a class="button" href="javascript:clickDump('sit');">Sit</a>
+                <a class="button" href="javascript:clickAuto();">Auto</a>
             </span>
         </div>
-        <br />
-        <div id="status">&nbsp;</div>
-        <br />
+        <span id="settings"><span class="container">
+            <span class="p"><span class="title">Computer player</span></span>
+            <span class="p">
+                <input type="radio" name="computer_col" id="computer_col_0" onclick="setComputerCol(0)">None
+                <input type="radio" name="computer_col" id="computer_col_2" onclick="setComputerCol(2)">Black
+                <input type="radio" name="computer_col" id="computer_col_1" onclick="setComputerCol(1)">White
+            </span>
+            <span class="p"><span class="title">Calculation Time</span></span>
+            <span class="p">Limit to <input id="time" size="2" value="8"> seconds</span>
+            <span class="p right"><a class="button" href="javascript:clickCloseSettings();">Close</a></span>
+        </span></span>
+        <div id="status_outer"><div id="status">&nbsp;</div></div>
         <div id="board"></div>
         <div id="console" class="debug"></div>
     </div>
