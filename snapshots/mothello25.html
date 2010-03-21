@@ -296,120 +296,72 @@
     function setAt(move) {
         var movey= move >> 3;
         var movex= move & 7;
-        var pos;
+        var pos, i;
 
-        var movex1, movey1;
         var movex2, movey2;
         var movexd, moveyd;
 
-        var quickSetAt= function(movex, movey) {
+        var qmovexd, qmoveyd;
 
-console.log("QUICKSET x=" + movex + " y=" + movey);
+        var quickSetAt= function(dx, dy) {
 
-            // posH[movey] |= col << (movex + movex);
-            posH[movey]= posH[movey] & ~(3 << (movex + movex)) | (col << (movex + movex));
+            var qmovex= movex;
+            var qmovey= movey;
 
-            // posV[movex] |= col << (movey + movey);
-            posV[movex]= posV[movex] & ~(3 << (movey + movey)) | (col << (movey + movey));
+            while (qi) {
 
-            movexd= movex >= movey ? movey + movey : movex + movex;
-            moveyd= movey - movex + 7;
-            // posDiag1[movey1] |= col << (movex1 + movex1);
-            posDiag1[moveyd]= posDiag1[moveyd] & ~(3 << movexd) | (col << movexd);
+console.log("QUICKSET x=" + qmovex + " y=" + qmovey);
 
-            movexd= (7 - movex) >= movey ? movex + movex : 14 - movey - movey;
-            moveyd= movey + movex;
-            // posDiag2[movey2] |= col << (movex2 + movex2);
-            posDiag2[moveyd]= posDiag2[moveyd] & ~(3 << movexd) | (col << movexd);
+                qmovex += dx;
+                qmovey += dy;
+
+                posH[qmovey]= posH[qmovey] & ~(3 << (qmovex + qmovex)) | (col << (qmovex + qmovex));
+    
+                posV[qmovex]= posV[qmovex] & ~(3 << (qmovey + qmovey)) | (col << (qmovey + qmovey));
+    
+                qmovexd= qmovex >= qmovey ? qmovey + qmovey : qmovex + qmovex;
+                qmoveyd= qmovey - qmovex + 7;
+                posDiag1[qmoveyd]= posDiag1[qmoveyd] & ~(3 << qmovexd) | (col << qmovexd);
+    
+                qmovexd= (7 - qmovex) >= qmovey ? qmovex + qmovex : 14 - qmovey - qmovey;
+                qmoveyd= qmovey + qmovex;
+                posDiag2[qmoveyd]= posDiag2[qmoveyd] & ~(3 << qmovexd) | (col << qmovexd);
+
+                qi--;
+            }
         };
 
         boardLog[boardLog.length]= move;
 
-//         quickSetAt(movex, movey);
-
-        var i;
+        // movex += movex >> 3;
 
         pos= posList[posH[movey] ^ colMask];
         posH[movey] |= col << (movex + movex);
 
-console.log('A: ' + pldump(pos));
-
-        for (i= pos[19 + movex + movex]; i; i--) quickSetAt(movex - i, movey);
-        for (i= pos[20 + movex + movex]; i; i--) quickSetAt(movex + i, movey);
+        if (qi= pos[19 + movex + movex]) quickSetAt(-1, 0);
+        if (qi= pos[20 + movex + movex]) quickSetAt( 1, 0);
 
         pos= posList[posV[movex] ^ colMask];
         posV[movex] |= col << (movey * 2);
 
-        for (i= pos[19 + movey + movey]; i; i--) quickSetAt(movex, movey - i);
-        for (i= pos[20 + movey + movey]; i; i--) quickSetAt(movex, movey + i);
+        if (qi= pos[19 + movey + movey]) quickSetAt(0, -1);
+        if (qi= pos[20 + movey + movey]) quickSetAt(0,  1);
 
-        movex1= movex >= movey ? movey + movey : movex + movex;
-        movey1= movey - movex + 7;
-        pos= posList[posDiag1[movey1] ^ colMask];
-        posDiag1[movey1] |= col << movex1;
+        movexd= movex >= movey ? movey + movey : movex + movex;
+        moveyd= movey - movex + 7;
+        pos= posList[posDiag1[moveyd] ^ colMask];
+        posDiag1[moveyd] |= col << movexd;
 
-//        console.log("left =" + pos[19 + movex1 + movex1]);
-//        console.log("right=" + pos[20 + movex1 + movex1]);
+        if (qi= pos[19 + movexd]) quickSetAt(-1, -1);
+        if (qi= pos[20 + movexd]) quickSetAt( 1,  1);
 
-        for (i= pos[19 + movex1]; i; i--) quickSetAt(movex - i, movey - i);
-        for (i= pos[20 + movex1]; i; i--) quickSetAt(movex + i, movey + i);
+        movexd= (7 - movex) >= movey ? movex + movex : 14 - movey - movey;
+        moveyd= movey + movex;
+        pos= posList[posDiag2[moveyd] ^ colMask];
+        posDiag2[moveyd] |= col << movexd;
 
-        movex2= (7 - movex) >= movey ? movex + movex : 14 - movey - movey;
-        movey2= movey + movex;
-        pos= posList[posDiag2[movey2] ^ colMask];
-        posDiag2[movey2] |= col << movex2;
-
-        for (i= pos[19 + movex2]; i; i--) quickSetAt(movex - i, movey + i);
-        for (i= pos[20 + movex2]; i; i--) quickSetAt(movex + i, movey - i);
-
-
-/*
-
-        diff += colDiff;
-
-        // ==== posH ====
-
-console.log('A: ' + pldump(posH[movey] ^ colMask));
-// console.log('B: ' + pldump(posH[movey] ^ colMask, movex));
-
-        pos= posList[posH[movey] ^ colMask];
-        diff += colDiff * pos[movex + 11] * 2;
-        posH[movey]= (pos[movex + 3] ^ colMask) & ~(3 << (movex + movex)) | (col << (movex + movex));
-
-// console.log('C: ' + pldump(posH[movey] ^ colMask) + ' diff=' + diff);
-
-        // ==== posV ====
-
-        pos= posList[posV[movex] ^ colMask];
-        diff += colDiff * pos[movey + 11] * 2;
-        posV[movex]= (pos[movey + 3] ^ colMask) & ~(3 << (movey + movey)) | (col << (movey + movey));
-
-/*
-        posV[movex] |= col << (movey * 2);
-
-        // ---------
-
-        var movey1= movey - movex + 7;
-        var movex1= movex >= movey ? movey : movex;
-
-        console.log('movey1=' + movey1 + ' movex1=' + movex1);
-
-        // ---------
-
-        posDiag1[movey1] |= col << (movex1 * 2);
-
-        // checkValid(posDiag1[movey1], 'D1', base1, 9);
-
-        // ---------
-
-        var movey2= movey + movex;
-        var movex2= (7 - movex) >= movey ? movex : 7 - movey;
-
-        posDiag2[movey2] |= col << (movex2 * 2);
-
-
-        console.log('movey2=' + movey2 + ' movex2=' + movex2);
-*/
+        if (qi= pos[19 + movexd]) quickSetAt(-1,  1);
+        if (qi= pos[20 + movexd]) quickSetAt( 1, -1);
 
         col= 3 - col;
         colMask= 65535 - colMask;
