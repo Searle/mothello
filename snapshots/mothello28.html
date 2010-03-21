@@ -19,7 +19,6 @@
     //  - Hashes are slow
     //  - Function calls are slow
     //  - Generating new arrays is slow
-    //  - JITs may be slower (MoThello is slower on Tamarin and V8)
     // ====================================================================
 
     if (typeof console == 'undefined') {
@@ -84,14 +83,6 @@
     // ====================================================================
 
     function initCellScore() {
-
-        // Generates a basic Scoring (how intense will a certain postition be looked at):
-        // 6 4 4 4 ..
-        // 4 1 2 2 ..
-        // 4 2 4 2 ..
-        // 4 2 2 2 ..
-        // ..
-
         cellScore= [];
         for (var i= 0; i < 64; i++) {
             cellScore[i]= 2;
@@ -173,6 +164,10 @@
     //
     //  flippedN    11.. Number of flipped stones to the left and to the right if white's move is N.
     //
+    //  // set1N       27.. DOCME
+    //
+    //  // set2N       35.. DOCME
+    //
     function initPosList() {
     
         initPosListDone= 0;
@@ -187,7 +182,7 @@
                 want1, want2, wantpos,
                 j,
                 valid,
-                newpos, flipped;
+                newpos, flipped; // , set1, set2;
 
             for (chunk= 8192; chunk--; pos0++) {
     
@@ -297,7 +292,7 @@
                     , "         if (score= cellScore2[" + base + mul + "valid[" + i + "]]) {"
                     , "             cell= " + base + mul + "valid[" + i + "];"
                     , "             cellScore2[cell]= 0;"
-                    , "             while (score--) result[result.length]= cell;"
+                    , "             while (score--) result.push(cell);"
                     , "         }"
                 );
             };
@@ -325,7 +320,7 @@
             , " }"
         );
 
-        // console.log(result.join("\n"));
+        console.log(result);
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
