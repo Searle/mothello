@@ -76,7 +76,7 @@
             var pos= posH[y];
             for (var x= 0; x < 8; x++) {
                 (document.getElementById('cell' + i) || {}).innerHTML=
-                    '<p class="num">' + i + '</p>' + '.OX'.substr(pos & 3, 1);
+                    '<p class="num">' + i + '</p>' + '.OX,'.substr(pos & 3, 1);
                 pos >>= 2;
                 i++;
             }
@@ -162,6 +162,7 @@
                 valid= [ 9, 9, 9 ];
                 newpos= [ pos0, pos0, pos0, pos0, pos0, pos0, pos0, pos0 ];
                 flipped= [ 0, 0, 0, 0, 0, 0, 0, 0 ];
+                flipped2= [ 0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0 ];
                 validi= 0;
     
                 for (j= 0; j < 8; j++) {
@@ -176,6 +177,7 @@
                                     ~(-1 << (j + j - wantpos - wantpos - 2))
                                     << (wantpos + wantpos + 2);
                                 flipped[wantpos] += j - wantpos -1;
+                                flipped2[wantpos + wantpos + 1]= j - wantpos -1; // TODO
                             }
                             wantpos= -1;
                         }
@@ -200,6 +202,7 @@
                                 ~(-1 << (j + j - had1pos - had1pos))
                                 << (had1pos + had1pos);
                             flipped[j] += j - had1pos;
+                            flipped2[j + j]= j - had1pos; // TODO
                         }
                         wantpos= j;
                         had= want1= want2= 0;
@@ -213,7 +216,7 @@
 
                 // Additionally to it's purpose, "concat" clones the array, which is
                 // what we need here.
-                posList[pos0]= valid.sort().reverse().concat(newpos).concat(flipped);
+                posList[pos0]= valid.sort().reverse().concat(newpos).concat(flipped).concat(flipped2);
 
                 // console.log(valid);
             }
@@ -263,8 +266,8 @@
 
     function pldump(pos, movei) {
 
-    console.log(pos);
-    console.log(posList[pos]);
+    // console.log(pos);
+    // console.log(posList[pos]);
 
         var newpos= movei == undefined
             ? pos
@@ -278,17 +281,95 @@
         return result;
     }
 
+    function clickDump(posXName) {
+        var posX;
+        if (posXName == 'posH') posX= posH;
+        if (posXName == 'posV') posX= posV;
+        if (posXName == 'posDiag1') posX= posDiag1;
+        if (posXName == 'posDiag2') posX= posDiag2;
+        console.log('============= ' + posXName + ' =============');
+        for (var i= 0; i < posX.length; i++) {
+            console.log(pldump(posX[i] ^ colMask));
+        }
+    }
+
     function setAt(move) {
         var movey= move >> 3;
         var movex= move & 7;
         var pos;
 
+        var movex1, movey1;
+        var movex2, movey2;
+        var movexd, moveyd;
+
+        var quickSetAt= function(movex, movey) {
+
+console.log("QUICKSET x=" + movex + " y=" + movey);
+
+            // posH[movey] |= col << (movex + movex);
+            posH[movey]= posH[movey] & ~(3 << (movex + movex)) | (col << (movex + movex));
+
+            // posV[movex] |= col << (movey + movey);
+            posV[movex]= posV[movex] & ~(3 << (movey + movey)) | (col << (movey + movey));
+
+            movexd= movex >= movey ? movey + movey : movex + movex;
+            moveyd= movey - movex + 7;
+            // posDiag1[movey1] |= col << (movex1 + movex1);
+            posDiag1[moveyd]= posDiag1[moveyd] & ~(3 << movexd) | (col << movexd);
+
+            movexd= (7 - movex) >= movey ? movex + movex : 14 - movey - movey;
+            moveyd= movey + movex;
+            // posDiag2[movey2] |= col << (movex2 + movex2);
+            posDiag2[moveyd]= posDiag2[moveyd] & ~(3 << movexd) | (col << movexd);
+        };
+
         boardLog[boardLog.length]= move;
+
+//         quickSetAt(movex, movey);
+
+        var i;
+
+        pos= posList[posH[movey] ^ colMask];
+        posH[movey] |= col << (movex + movex);
+
+console.log('A: ' + pldump(pos));
+
+        for (i= pos[19 + movex + movex]; i; i--) quickSetAt(movex - i, movey);
+        for (i= pos[20 + movex + movex]; i; i--) quickSetAt(movex + i, movey);
+
+        pos= posList[posV[movex] ^ colMask];
+        posV[movex] |= col << (movey * 2);
+
+        for (i= pos[19 + movey + movey]; i; i--) quickSetAt(movex, movey - i);
+        for (i= pos[20 + movey + movey]; i; i--) quickSetAt(movex, movey + i);
+
+        movex1= movex >= movey ? movey + movey : movex + movex;
+        movey1= movey - movex + 7;
+        pos= posList[posDiag1[movey1] ^ colMask];
+        posDiag1[movey1] |= col << movex1;
+
+//        console.log("left =" + pos[19 + movex1 + movex1]);
+//        console.log("right=" + pos[20 + movex1 + movex1]);
+
+        for (i= pos[19 + movex1]; i; i--) quickSetAt(movex - i, movey - i);
+        for (i= pos[20 + movex1]; i; i--) quickSetAt(movex + i, movey + i);
+
+        movex2= (7 - movex) >= movey ? movex + movex : 14 - movey - movey;
+        movey2= movey + movex;
+        pos= posList[posDiag2[movey2] ^ colMask];
+        posDiag2[movey2] |= col << movex2;
+
+        for (i= pos[19 + movex2]; i; i--) quickSetAt(movex - i, movey + i);
+        for (i= pos[20 + movex2]; i; i--) quickSetAt(movex + i, movey - i);
+
+
+/*
+
         diff += colDiff;
 
         // ==== posH ====
 
-// console.log('A: ' + pldump(posH[movey] ^ colMask));
+console.log('A: ' + pldump(posH[movey] ^ colMask));
 // console.log('B: ' + pldump(posH[movey] ^ colMask, movex));
 
         pos= posList[posH[movey] ^ colMask];
@@ -408,10 +489,13 @@
     #board .valid-move {
         background-color: yellow;
     }
-    
 </style>
 <body onload="doOnload()">
     <a href="javascript:clickUndo();">UNDO</a>
+    <a href="javascript:clickDump('posH');">posH</a>
+    <a href="javascript:clickDump('posV');">posV</a>
+    <a href="javascript:clickDump('posDiag1');">posDiag1</a>
+    <a href="javascript:clickDump('posDiag2');">posDiag2</a>
     <hr>
     <div id="board"></div>
 </body>
