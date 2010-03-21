@@ -60,7 +60,7 @@
 
     var setAt;
 
-    var computerCol= 2;
+    var computerCol= 0;
 
     // ====================================================================
     //  Core
@@ -668,6 +668,12 @@
         eval("setAt[" + move + "]= (" + result.join("\n") + ");");
     }
 
+    function finished() {
+        return boardLog.length < 4
+            || boardLog.length >= 64
+            || (boardLog[boardLog.length - 2] < 0 && boardLog[boardLog.length - 1]);
+    }
+  
     function pass() {
         if (boardLog.length >= 64) return;
 
@@ -922,6 +928,28 @@
         return "?"
     }
 
+    function defaultStatus() {
+        clearTimeout(hStatusTimer);
+        hStatusTimer= null;
+        var status= finished() ? 'wins' : 'leads';
+        if (diff > 0) {
+            status= 'White ' + status + ' by ' + diff + ' points';
+        }
+        else if (diff < 0) {
+            status= 'Black ' + status + ' by ' + (-diff) + ' points';
+        }
+        else {
+            status= finished() ? 'it\'s a draw' : 'The game is even';
+        }
+        if (finished()) {
+            status= 'Game over, ' + status + '!';
+        }
+        else {
+            status= colName(col) + '\'s turn. ' + status + '.';
+        }
+        document.getElementById('status').innerHTML= status;
+    }
+
     function status(html, secs, noConsole) {
         if (!noConsole) console.log('STATUS: ' + html);
         document.getElementById('status').innerHTML= html;
@@ -930,20 +958,7 @@
             hStatusTimer= null;
         }
         if (secs) {
-            hStatusTimer= setTimeout(function() {
-                var over= boardLog.length >= 64;
-                var status= over ? 'wins' : 'leads';
-                if (diff > 0) status= 'White ' + status + ' by ' + diff + ' points';
-                else if (diff < 0) status= 'Black ' + status + ' by ' + (-diff) + ' points';
-                else status= over ? 'it\'s a draw' : 'The game is even';
-                if (over) {
-                    status= 'Game over, ' + status + '!';
-                }
-                else {
-                    status= colName(col) + '\'s turn. ' + status + '.';
-                }
-                document.getElementById('status').innerHTML= status;
-            }, secs * 1000);
+            hStatusTimer= setTimeout(defaultStatus, secs * 1000);
         }
     }
 
@@ -979,7 +994,7 @@
                 i++;
             }
         }
-        var cells= getValidMoves();
+        var cells= finished() ? [] : getValidMoves();
 
         unmarkAllCells();
         for (var i in cells) markCell(cells[i], 'valid-move-' + col);
@@ -1031,15 +1046,23 @@
     //  UI
     // ====================================================================
 
-    function clickCell(move) {
+    function isComputersTurn() {
         if (endTime) {
             status("Please wait until the computer made it's move!");
-            return;
+            return 1;
         }
+        return 0;
+    }
+
+    function clickCell(move) {
+        if (isComputersTurn()) return;
+        if (finished()) return;
+        
         if (colAtCell(move)) {
             status("Cell is already taken!", 3);
             return;
         }
+
         var moves= unique(getValidMoves());
         var ok= 0;
         for (var movei in moves) {
@@ -1049,38 +1072,52 @@
             status("Not a valid move!", 2);
             return;
         }
+
         setAt[move]();
         refreshBoard();
         markCell(move, 'last-move');
 
         if (computerCol == col) {
-            setTimeout(function() { computeMove(); }, 100);
+            computeMove();
+            // setTimeout(function() { computeMove(); }, 100);
         }
     }
 
     function clickNewGame() {
+        if (isComputersTurn()) return;
+
         initBoard();
         refreshBoard();
     }
 
     function clickUndo() {
+        if (isComputersTurn()) return;
         if (boardLog.length <= 4) {
             console.log("CAN'T UNDO");
             return;
         }
-        undo(2);
+
+        undo(computerCol ? 2 : 1);
         refreshBoard();
         if (boardLog.length > 4 && boardLog[boardLog.length - 1] > 0) {
             markCell(boardLog[boardLog.length - 1], 'last-move');
         }
+        defaultStatus();
     }
-  
+
     function clickPass() {
+        if (isComputersTurn()) return;
+        if (finished()) return;
+
+        // var n= boardLog[boardLog.length-1] < 0 ? 64 : 1;
+        // while (n--) pass();
         pass();
         refreshBoard();
+        defaultStatus();
 
         if (computerCol == col) {
-            setTimeout(function() { computeMove(); }, 100);
+            computeMove();
+            // setTimeout(function() { computeMove(); }, 100);
         }
     }
 
@@ -1090,6 +1127,9 @@
     }
 
     function clickTip() {
+        if (isComputersTurn()) return;
+        if (finished()) return;
+
         refreshBoard();
         computeMove(1);
     }
