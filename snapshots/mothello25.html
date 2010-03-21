@@ -135,16 +135,6 @@
         setAt[27]();
         setAt[35]();
         setAt[36]();
-
-        // setAt[37](); setAt[29]();  setAt[21](); setAt[30]();  setAt[19](); setAt[44]();
-        // setAt[29](); setAt[37]();  setAt[45](); setAt[38]();  setAt[42](); setAt[22]();
-
-        // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); 
-        // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); setAt[22](); setAt[58](); setAt[49](); setAt[29](); setAt[4](); setAt[56]();
-
-        // setAt[26](); setAt[20](); setAt[45](); setAt[42](); setAt[43](); setAt[44](); setAt[21](); setAt[46](); setAt[51](); setAt[22](); setAt[41](); setAt[58](); setAt[54](); setAt[19](); setAt[50](); setAt[63](); setAt[47](); setAt[33](); setAt[18](); setAt[10](); setAt[9](); setAt[0](); setAt[61](); setAt[52](); setAt[1](); setAt[11](); setAt[3](); setAt[37](); setAt[49](); setAt[56](); setAt[25](); setAt[17](); setAt[57](); setAt[48](); setAt[53](); setAt[40](); setAt[29](); setAt[8](); setAt[60](); setAt[2](); setAt[13](); setAt[4](); setAt[6](); setAt[32](); setAt[23](); setAt[31](); setAt[16](); setAt[24](); setAt[39](); setAt[14](); setAt[15](); setAt[34](); setAt[5](); setAt[62](); setAt[12](); setAt[59](); pass(); setAt[55](); setAt[38]();
-
-        status("Let's go!", 1);
     }
 
     //  The entries for all possible positions for one row are stored in the
@@ -265,72 +255,6 @@
     // It's pretty much the bootleneck of the whole computaion.
     // At least that's what Firebug says.
     //
-    function makeGetValidMoves1() {
-
-        var result= [];
-
-        result.push(""
-            , " function() {"
-            , "     var check= {};"     // HASH???
-            , "     var pos, cell;"
-        );
-
-        var checkValid= function(posArray, move, base, mul, len) {
-
-            result.push(""
-                , "     pos= posList[" + posArray + "[" + move + "] ^ colMask];"
-            );
-
-            if (mul == -1) mul= ' - ';
-            else if (mul == 1) mul= (base ? ' + ' : '');
-            else if (mul > 0) mul= (base ? ' + ' : '') + mul + ' * ';
-            else mul= (base ? ' - ' : ' -') + -mul + ' * ';
-
-            if (base == 0) base= '';
-
-            for (var i= 0; i < 3; i++) {
-                var cell= base + mul + "pos[" + i + "]"
-                result.push(""
-                    , "     if (pos[" + i + "] < " + len + ") {"
-                    , "         check[" + cell + "]= 1;"
-                );
-            };
-            result.push(""
-                , "     }}}"
-            );
-        }
-
-        for (var i= 0; i < 8; i++) {
-            checkValid('posH',      i, i * 8, 1, 8);
-            checkValid('posV',      i, i,     8, 8);
-        }
-        for (var i= 2; i < 8; i++) {
-            checkValid('posDiag1',  i, 7 - i, 9,  i + 1);
-            checkValid('posDiag2',  i, i * 8, -7, i + 1);
-        }
-        for (var i= 8; i < 13; i++) {
-            checkValid('posDiag1',  i, (i - 7) * 8, 9,  15 - i);
-            checkValid('posDiag2',  i, 49 + i,      -7, 15 - i);
-        }
-
-        result.push(""
-            , "     var result= [];"
-
-            , "     for (var cell in check) {"
-            , "         cell= parseInt(cell);"
-            , "         var score= cellScore[cell];"
-            , "         while (score--) result[result.length]= cell;"
-            , "     }"
-
-            , "     return result;"
-            , " }"
-        );
-
-        console.log(result.join("\n"));
-
-        eval("getValidMoves= (" + result.join('') + ");");
-    }
-
     function makeGetValidMoves() {
 
         var result= [];
@@ -384,7 +308,8 @@
         }
 
         result.push(""
-            , "     return result;"
+            , "     if (result.length) return result;"
+            , "     return [ 64 ];"     // pass
             , " }"
         );
 
@@ -672,10 +597,10 @@
 
     function finished() {
         if (boardLog.length < 4) return true;
-        if (boardLog[boardLog.length - 2] < 0 && boardLog[boardLog.length - 1] < 0) return true;
-        if (!getValidMoves().length) {
+        if (boardLog[boardLog.length - 2] == 64 && boardLog[boardLog.length - 1] == 64) return true;
+        if (getValidMoves()[0] == 64) {
             swapCol();
-            var fin= getValidMoves().length == 0;
+            var fin= getValidMoves()[0] == 64;
             swapCol();
             return fin;
         }
@@ -689,11 +614,7 @@
     }
       
     function pass() {
-        if (finished()) return;
-
-        // if (boardLog.length >= 64) return;
-
-        boardLog[boardLog.length]= -1;
+        boardLog[boardLog.length]= 64;
         swapCol();
     }
 
@@ -701,12 +622,8 @@
     function undo(count) {
         var flog2= boardLog.concat(); // clone
 
-        initBoard();        
+        initBoard();
         for (var i= 4; i < flog2.length - count; i++) {
-            if (flog2[i] < 0) {
-                pass();
-                continue;
-            }
             setAt[flog2[i]]();
         }
     }
@@ -811,9 +728,9 @@
 
     function computeMove(tip) {
         var moves= unique(getValidMoves());
-        if (moves.length == 0) {
+        if (moves[0] == 64) {
             status('Pass. I can\'t make a move :-(', 3);
-            pass();
+            if (!tip) pass();
             refreshBoard();
             return 0;
         }
@@ -836,7 +753,8 @@
             }
     
             status('Done.'
-                    + ' My move is (' + move + ') ' + (move & 7) + ',' + (move >> 3) + '.'
+                    // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
+                    + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
                     + ' Calculated ' + games + ' games.'
                 , 3);
         }
@@ -946,10 +864,10 @@
 
                             while (1) {
                                 nextMoves= getValidMoves();
-                                if (nextMoves.length == 0) {
+                                if (nextMoves[0] == 64) {
                                     pass();
                                     nextMoves= getValidMoves();
-                                    if (nextMoves.length == 0) break;
+                                    if (nextMoves[0] == 64) break;
                                 }
                                 nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
                                 setAt[nextMove]();
@@ -969,7 +887,7 @@
 
                     }
                 }
-                setTimeout(inner, 1);
+                setTimeout(inner, 10);
                 return;
             }
 
@@ -1017,7 +935,7 @@
 
                 }
 
-                if (col == 1) {
+                if (col == 2) {
                     var d1= 0;
                     var d2= 0;
                     var n= 0;
@@ -1062,13 +980,66 @@
                     s += ' #=' + gamesPerMove;
                     // s += s1;
                     
-                    console.log(s);
+                    console.log("A2 " + s);
 
                     moveScore[move]= Math.floor(100 * dd1 / n);
 
                 }
 
-                if (col == 2) {
+                if (col == -1) {
+                    var d1= 0;
+                    var d2= 0;
+                    var n= 0;
+                    var s1= '';
+
+                    for (movei2= moves2[movei].length; movei2--; ) {
+                        var score= moveScore2[movei][movei2];
+                        if (score < smin) smin= score;
+                        if (score > smax) smax= score;
+                        d1 += score;
+                        score= score < 0 ? -Math.pow(-score, 1.1) : Math.pow(score, 0.9);
+                        d2 += score;
+                        n++;
+                        s1 += ' ' + moves2[movei][movei2] + ':' + moveScore2[movei][movei2];
+                        s1 += '(' + r(score) + ')';
+                    }
+
+                    var d= d1 / n;
+
+                    var s= ('' + (move + 100)).substr(1) + ' -> ';
+
+                    var smin= 99999999;
+                    var smax= -99999999;
+
+                    var dd1 = 0;
+
+                    for (movei2= moves2[movei].length; movei2--; ) {
+                        var score= moveScore2[movei][movei2];
+                        dd1 += score < d ? d : score;
+                    }
+
+                    // var score2= d + Math.pow(smax - d, 1.1) - Math.pow(d - smin, 1.1);
+
+                    s += ' sum=' + r(d1);
+                    s += ' d=' + r(d);
+                    s += ' dd1=' + r(dd1 / n);
+
+                    // s += ' ~' + r(Math.pow(smax - d, 1.1)) + ' ~' + r(Math.pow(d - smin, 1.1));
+                    // s += ' max=' + r(smax) + ' min=' + r(smin);
+
+                    s += ' esum=' + r(d2);
+                    s += ' #=' + gamesPerMove;
+                    // s += s1;
+                    
+                    console.log("A3 " + s);
+
+                    moveScore[move]= Math.floor(100 * dd1 / n);
+
+                }
+
+                console.log(moves2[movei]);
+
+                if (col == 1) {
 
                     var sum= 0;
                     for (movei2 in moves2[movei]) {
@@ -1218,7 +1189,7 @@
         if (posXName == 'sit') {
             var s= '';
             for (var i= 4; i < boardLog.length; i++) {
-                s += boardLog[i] < 0 ? 'pass(); ' : 'setAt[' + boardLog[i] + '](); ';
+                s += 'setAt[' + boardLog[i] + '](); ';
                 if (i & 1) s += ' ';
             }
             console.log(s);
@@ -1260,21 +1231,21 @@
     }
 
     function updateUI() {
-            var begun= boardLog.length > 4;
-            var is_finished= finished();
-            var computing= endTime;
-
-            var up= function(button, on) {
-                document.getElementById('button_' + button).className= on ? 'button' : 'button_off';
-            };
-
-            // <a id="button_new_game" class="button" href="javascript:clickNewGame();">New</a>
-            up("new_game",  !computing && begun);
-            up("undo",      !computing && begun);
-            up("pass",      !computing && !is_finished);
-            up("tip",       !computing && !is_finished);
-            up("stop",      computing);
-            up("settings",  true);
+        var begun= boardLog.length > 4;
+        var is_finished= finished();
+        var computing= endTime;
+        
+        var up= function(button, on) {
+            document.getElementById('button_' + button).className= on ? 'button' : 'button_off';
+        };
+        
+        // <a id="button_new_game" class="button" href="javascript:clickNewGame();">New</a>
+        up("new_game",  !computing && begun);
+        up("undo",      !computing && begun);
+        up("pass",      !computing && !is_finished);
+        up("tip",       !computing && !is_finished);
+        up("stop",      computing);
+        up("settings",  true);
     }
 
     function clickCell(move) {
@@ -1310,6 +1281,7 @@
 
         initBoard();
         refreshBoard();
+        defaultStatus();
     }
 
     function clickUndo() {
@@ -1321,10 +1293,15 @@
 
         undo(computerCol == 1 || computerCol == 2 ? 2 : 1);
         refreshBoard();
-        if (boardLog.length > 4 && boardLog[boardLog.length - 1] > 0) {
-            markCell(boardLog[boardLog.length - 1], 'last-move');
-        }
         defaultStatus();
+        if (boardLog.length > 4) {
+            if (boardLog[boardLog.length - 1] != 64) {
+                markCell(boardLog[boardLog.length - 1], 'last-move');
+            }
+            else {
+                status(colName(3 - col) + " passed.", 2);
+            }
+        }
     }
 
     function clickPass() {
@@ -1397,6 +1374,7 @@
 
         setAt= []
         for (var i= 64; i--; ) makeSetAt(i);
+        setAt[64]= pass;
         
         initPosList();
 
@@ -1406,7 +1384,27 @@
                 return;
             }
             initBoard();
+
+
+            // setAt[37](); setAt[29]();  setAt[21](); setAt[30]();  setAt[19](); setAt[44]();
+            // setAt[29](); setAt[37]();  setAt[45](); setAt[38]();  setAt[42](); setAt[22]();
+    
+            // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); 
+            // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); setAt[22](); setAt[58](); setAt[49](); setAt[29](); setAt[4](); setAt[56]();
+    
+            // setAt[26](); setAt[20](); setAt[45](); setAt[42](); setAt[43](); setAt[44](); setAt[21](); setAt[46](); setAt[51](); setAt[22](); setAt[41](); setAt[58](); setAt[54](); setAt[19](); setAt[50](); setAt[63](); setAt[47](); setAt[33](); setAt[18](); setAt[10](); setAt[9](); setAt[0](); setAt[61](); setAt[52](); setAt[1](); setAt[11](); setAt[3](); setAt[37](); setAt[49](); setAt[56](); setAt[25](); setAt[17](); setAt[57](); setAt[48](); setAt[53](); setAt[40](); setAt[29](); setAt[8](); setAt[60](); setAt[2](); setAt[13](); setAt[4](); setAt[6](); setAt[32](); setAt[23](); setAt[31](); setAt[16](); setAt[24](); setAt[39](); setAt[14](); setAt[15](); setAt[34](); setAt[5](); setAt[62](); setAt[12](); setAt[59](); pass(); setAt[55](); setAt[38]();
+    
+            // Fehler, erzwingt kein weiss passen
+            setAt[44](); setAt[29](); setAt[18](); setAt[52](); setAt[53](); setAt[54](); setAt[45](); setAt[26](); setAt[63](); setAt[37](); setAt[34](); setAt[41](); setAt[62](); setAt[25](); setAt[17](); setAt[11](); setAt[51](); setAt[16](); setAt[9](); setAt[61](); setAt[46](); setAt[43](); setAt[38](); setAt[39](); setAt[60](); setAt[0](); setAt[42](); setAt[33](); setAt[40](); setAt[49](); setAt[50](); setAt[58](); setAt[59](); setAt[55](); setAt[32](); setAt[57](); setAt[47](); setAt[48](); 
+            setAt[24](); pass(); 
+            //       setAt[4](); setAt[19](); setAt[31](); setAt[3](); setAt[56](); setAt[5](); setAt[1](); setAt[2](); setAt[12](); setAt[10]();
+            //         setAt[8](); setAt[21](); setAt[20](); setAt[22](); setAt[23]();
+            //         setAt[13](); setAt[6](); setAt[15](); setAt[30](); setAt[7](); setAt[14](); 
+
+
+
             refreshBoard();
+            defaultStatus();
         }
         setTimeout(ready, 100);
     }
@@ -1545,7 +1543,7 @@
         background-color: #DDD;
     }
     .debug {
-        display: none;
+        x-display: none;
     }
 </style>
 </head>
@@ -1583,7 +1581,7 @@
                 <input type="radio" name="computer_col" id="computer_col_1" onclick="setComputerCol(1)">White
             </span>
             <span class="p"><span class="title">Calculation Time</span></span>
-            <span class="p">Limit to <input id="time" size="2" value="8"> seconds</span>
+            <span class="p">Limit to <input id="time" maxlength="3" size="2" value="8"> seconds</span>
             <span class="p right"><a class="button" href="javascript:clickCloseSettings();">Close</a></span>
         </span></span>
         <div id="status_outer"><div id="status">&nbsp;</div></div>
