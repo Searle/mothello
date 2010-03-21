@@ -238,72 +238,6 @@
     // It's pretty much the bootleneck of the whole computaion.
     // At least that's what Firebug says.
     //
-    function makeGetValidMoves1() {
-
-        var result= [];
-
-        result.push(""
-            , " function() {"
-            , "     var check= {};"     // HASH???
-            , "     var pos, cell;"
-        );
-
-        var checkValid= function(posArray, move, base, mul, len) {
-
-            result.push(""
-                , "     pos= posList[" + posArray + "[" + move + "] ^ colMask];"
-            );
-
-            if (mul == -1) mul= ' - ';
-            else if (mul == 1) mul= (base ? ' + ' : '');
-            else if (mul > 0) mul= (base ? ' + ' : '') + mul + ' * ';
-            else mul= (base ? ' - ' : ' -') + -mul + ' * ';
-
-            if (base == 0) base= '';
-
-            for (var i= 0; i < 3; i++) {
-                var cell= base + mul + "pos[" + i + "]"
-                result.push(""
-                    , "     if (pos[" + i + "] < " + len + ") {"
-                    , "         check[" + cell + "]= 1;"
-                );
-            };
-            result.push(""
-                , "     }}}"
-            );
-        }
-
-        for (var i= 0; i < 8; i++) {
-            checkValid('posH',      i, i * 8, 1, 8);
-            checkValid('posV',      i, i,     8, 8);
-        }
-        for (var i= 2; i < 8; i++) {
-            checkValid('posDiag1',  i, 7 - i, 9,  i + 1);
-            checkValid('posDiag2',  i, i * 8, -7, i + 1);
-        }
-        for (var i= 8; i < 13; i++) {
-            checkValid('posDiag1',  i, (i - 7) * 8, 9,  15 - i);
-            checkValid('posDiag2',  i, 49 + i,      -7, 15 - i);
-        }
-
-        result.push(""
-            , "     var result= [];"
-
-            , "     for (var cell in check) {"
-            , "         cell= parseInt(cell);"
-            , "         var score= cellScore[cell];"
-            , "         while (score--) result[result.length]= cell;"
-            , "     }"
-
-            , "     return result;"
-            , " }"
-        );
-
-        console.log(result.join("\n"));
-
-        eval("getValidMoves= (" + result.join('') + ");");
-    }
-    
     function makeGetValidMoves() {
 
         var result= [];
@@ -690,7 +624,7 @@
 
             if (new Date().getTime() < endTime) {
 
-                status("Thinking" + dots, 0, 1);
+                status("Thinking" + dots);
                 dots= dots.length > 30 ? '' : dots + '.';
 
                 // If a certain amount of time is used up, concentrate on the
@@ -772,8 +706,8 @@
         return "?"
     }
 
-    function status(html, secs, noConsole) {
-        if (!noConsole) console.log('STATUS: ' + html);
+    function status(html, secs) {
+        console.log('STATUS: ' + html);
         document.getElementById('status').innerHTML= html;
         if (hStatusTimer) {
             clearTimeout(hStatusTimer);
@@ -1048,7 +982,7 @@
         background-color: #DDD;
     }
     .debug {
-        display: none;
+        x-display: none;
     }
     #head {
         background-color: black;        
