@@ -42,6 +42,7 @@
         
         flog= [];
         col= 1;
+
         setAt(27);
         setAt(28);
         setAt(36);
@@ -232,35 +233,17 @@ xx.className= class_;
 
         f[move]= col;
 
-        var checkValid= function(fvv, label, base, mul) {
-            var valid= col == 1
-                ? validMoves[65535 - fvv]
-                : validMoves[fvv];
-            var i= valid.length;
-            while (i--) {
-                var cell= base + mul * valid[i];
-                console.log(label + ": valid(" + move + "," + '.OX'.substr(col, 1) + ")="
-                    + cell
-                    + ' (base=' + base + ' valid[' + i + ']=' + valid[i] + ')'
-                );
-
-                markCell(cell, 'valid-move');
-            }
-        }
 
         fv[movey] |= col << (movex * 2);
-        // checkValid(fv[movey], 'V ', movey * 8, 1);
 
         // ---------
 
         fh[movex] |= col << (movey * 2);
-        // checkValid(fh[movex], 'H ', movex, 8);
 
         // ---------
 
         var movey1= movey - movex + 7;
         var movex1= movex >= movey ? movey : movex;
-        var base1= movex >= movey ? movex - movey : (movey - movex) * 8;
 
         console.log('movey1=' + movey1 + ' movex1=' + movex1);
 
@@ -274,24 +257,23 @@ xx.className= class_;
 
         var movey2= movey + movex;
         var movex2= (7 - movex) >= movey ? movex : 7 - movey;
-        var base2= (7 - movex) >= movey ? (movex + movey) * 8 /*FALSCH*/ : 49 + movex + movey;
 
         fd2[movey2] |= col << (movex2 * 2);
 
-        // checkValid(fd2[movey2], 'D2', base2, -7);
 
-        console.log('movey2=' + movey2 + ' movex2=' + movex2 + ' base2=' + base2);
-
+        console.log('movey2=' + movey2 + ' movex2=' + movex2);
 
         col= 3 - col;
     }
-    
-    function undo() {
-        var move= flog.pop();
-        fv[move >> 3] &= ~(3 << ((move & 7) * 2));
-        f[move]= 0;
 
-        col= 3 - col;
+    // slow! but doesn't matter, not used by computer player
+    function undo() {
+        var flog2= flog.concat(); // clone
+
+        initBoard();        
+        for (var i= 4; i < flog2.length - 1; i++) {
+            setAt(flog2[i]);
+        }
     }
 
     function clickUndo() {
