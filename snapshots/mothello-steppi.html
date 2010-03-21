@@ -56,14 +56,6 @@
 
     var zero64;                 // 64 x 0
 
-/*
-    var recalcValidHV;
-    var recalcValidDiag;
-    var validHV;
-    var validDiag;
-    var validMoves;
-*/
-
     var hStatusTimer= null;     // Used by status(). Timer for switching back the status information to default value
 
     var endTime= 0;             // Used by computeMove()
@@ -134,13 +126,6 @@
         stopCalculating= 0;
         
         diff= 0;
-/*
-        recalcValidHV= 0;
-        recalcValidDiag= 0;
-        validHV= validMovesCheck.concat();
-        validDiag= validMovesCheck.concat();
-        validMoves= [];
-*/
 
         validMoves= [];
 
@@ -328,94 +313,6 @@
         eval("getValidMoves= (" + result.join('') + ");");
     }
 
-
-    // Unused
-    function makeGetValidMoves2() {
-
-        var result= [];
-
-        var checkValid= function(posArray, recalcVar, recalcBit, move, base, mul, len) {
-
-            // result[result.length] is faster than result.push, according to the net
-
-            result.push(""
-                , "     if (recalcValid" + recalcVar + " & " + (1 << recalcBit) + ") {"
-
-                // , "         console.log('recalcing: " + recalcVar + ", " + recalcBit + "');"
-
-                , "         pos= posList[" + posArray + "[" + move + "] ^ colMask];"
-            );
-
-            if (mul == -1) mul= ' - ';
-            else if (mul == 1) mul= (base ? ' + ' : '');
-            else if (mul > 0) mul= (base ? ' + ' : '') + mul + ' * ';
-            else mul= (base ? ' - ' : ' -') + -mul + ' * ';
-
-            if (base == 0) base= '';
-
-            for (var i= 0; i < 3; i++) {
-                var cell= base + mul + "pos[" + i + "]"
-                result.push(""
-                    , "         if (pos[" + i + "] < " + len + ") {"
-                    , "             valid" + recalcVar + "[" + cell + "] |= " + (1 << recalcBit) + ";"
-                );
-            };
-            result.push(""
-                , "         }}}"
-                , "     }"
-            );
-        }
-
-        result.push(""
-            , " function() {"
-            , "     if (recalcValidHV == 0 && recalcValidDiag == 0) {"
-            , "         return validMoves;"
-            , "     }"
-
-            // , "     console.log('=====================');"
-
-            , "     var pos, cell;"
-            , "     var result= [];"
-
-            , "     cell= 64;"
-            , "     while (cell--) {"
-            , "         validHV[cell] &= ~recalcValidHV;"
-            , "         validDiag[cell] &= ~recalcValidDiag;"
-            , "     }"
-        );
-
-        for (var i= 0; i < 8; i++) {
-            checkValid('posH',      'HV',   i,      i, i * 8, 1, 8);
-            checkValid('posV',      'HV',   i + 16, i, i,     8, 8);
-        }
-        for (var i= 2; i < 8; i++) {
-            checkValid('posDiag1',  'Diag', i,      i, 7 - i,  9, i + 1);
-            checkValid('posDiag2',  'Diag', i + 16, i, i * 8, -7, i + 1);
-        }
-        for (var i= 8; i < 13; i++) {
-            checkValid('posDiag1',  'Diag', i,      i, (i - 7) * 8,  9, 15 - i);
-            checkValid('posDiag2',  'Diag', i + 16, i, 49 + i,      -7, 15 - i);
-        }
-
-        result.push(""
-        
-            , "     validMoves= [];"
-            , "     cell= 64;"
-            , "     while (cell--) if (validHV[cell] || validDiag[cell]) {"
-            , "         var score= cellScore[cell];"
-            , "         while (score--) validMoves[validMoves.length]= cell;"
-            , "     }"
-        
-            , "     recalcValidHV= recalcValidDiag= 0;"
-            , "     return validMoves;"
-            , " }"
-        );
-
-        console.log(result.join("\n"));
-
-        eval("getValidMoves= (" + result.join('') + ");");
-    }
-
     function unique(a) {
         var lookup= [];
         var result= [];
@@ -452,30 +349,6 @@
             }
         };
 
-        var recalcValid;
-
-        var addRecalcValid= function(recalcValid, hIndex, vIndex, d1Index, d2Index) {
-
-            // Defunct... Doesn't work this way
-            return recalcValid;
-
-            var newRecalcValid= [
-                recalcValid[0] | (1 << hIndex)  | (1 << (vIndex + 16)),
-                recalcValid[1] | (1 << d1Index) | (1 << (d2Index + 16))
-            ];
-            if (newRecalcValid[0] != recalcValid[0]) {
-                result.push(""
-                    , "         recalcValidHV   |= 0x" + (newRecalcValid[0] & ~recalcValid[0]).toString(16) + "; // " + newRecalcValid[0].toString(16)
-                );
-            }
-            if (newRecalcValid[1] != recalcValid[1]) {
-                result.push(""
-                    , "         recalcValidDiag |= 0x" + (newRecalcValid[1] & ~recalcValid[1]).toString(16) + "; // " + newRecalcValid[1].toString(16)
-                );
-            }
-            return newRecalcValid;
-        }
-
         // fixme: name turn
         var flip= function(posIndex, dx, dy) {
 
@@ -491,8 +364,6 @@
                     var brackets= '';
                     var found= 0;
 
-                    var qrecalcValid= recalcValid.concat();
-        
                     for (var max= 1; max < 7; max++) {
         
                         moveHVx += dx;
@@ -525,8 +396,6 @@
                             , "         posDiag1[" + moveDiag1y + "] ^= " + ((3 << moveDiag1x)) + ";"
                             , "         posDiag2[" + moveDiag2y + "] ^= " + ((3 << moveDiag2x)) + ";"
                         );
-
-                        qrecalcValid= addRecalcValid(qrecalcValid, moveHVy, moveHVx, moveDiag1y, moveDiag2y);
                     }
 
                     if (brackets.length) result.push(""
@@ -562,8 +431,6 @@
             , "     diff += colDiff;"
         );
 
-        recalcValid= addRecalcValid([0, 0], movey, movex, moveday, movedby);
-        
         result.push(""
             , "     pos= posList[posH[" + movey + "] ^ colMask];"
             , "     posH[" + movey + "] |= " + shl('col', movex2) + ";"
@@ -695,28 +562,30 @@
         for (var i= capBoardLog.length; i--; ) {
             boardLog[i]= capBoardLog[i];
         }
-/*
-        validHV= [];
-        validDiag= [];
-        for (var i= 64; i--; ) {
-            validHV[i]= capValidHV[i];
-            validDiag[i]= capValidDiag[i];
-        }
-
-        validMoves= [];
-        for (var i= capValidMoves.length; i--; ) {
-            validMoves[i]= capValidMoves[i];
-        }
-
-        recalcValidHV= capRecalcValidHV;
-        recalcValidDiag= capRecalcValidDiag;
-*/
         
         col= capCol;
         colMask= capColMask;
         colDiff= capColDiff;
 
         diff= capDiff;
+    }
+
+    var doMove= function(move, tip, games) {
+        if (!tip) {
+            setAt[move]();
+            refreshBoard();
+            markCell(move, 'last-move');
+        }
+        else {
+            updateUI();
+            markCell(move, 'tip-move');
+        }
+
+        status('Done.'
+                // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
+                + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
+                + ' Calculated ' + games + ' games.'
+            , 3);
     }
 
     function computeMove(tip) {
@@ -734,31 +603,14 @@
         var games= 0;
         var gamesPerMove= 0;
 
-        var doMove= function(move) {
-            if (!tip) {
-                setAt[move]();
-                refreshBoard();
-                markCell(move, 'last-move');
-            }
-            else {
-                updateUI();
-                markCell(move, 'tip-move');
-            }
-    
-            status('Done.'
-                    // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
-                    + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
-                    + ' Calculated ' + games + ' games.'
-                , 3);
-        }
-
 //        if (moves.length == 1) {
-//            doMove(moves[0]);
+//            doMove(moves[0], tip, games);
 //            return 1;
 //        }
 
         var startTime= new Date().getTime();
 
+        stopCalculating= 0; // FIXME: Hide in function
         endTime= startTime + secs * 1000;
 
         // Start removing stupid moves from the list of considered moves after 1/3 of the time
@@ -1024,7 +876,7 @@
 
                     }
                 }
-                setTimeout(inner, 50);
+                setTimeout(inner, 1);
                 return;
             }
 
@@ -1043,7 +895,7 @@
             }
             console.log("Scores:" + s);
     
-            doMove(moves[0]);
+            doMove(moves[0], tip, games);
             
             // console.log(scores);
         }
@@ -1063,12 +915,67 @@
 
 
 
+    var inspectRootNode= [];
+    var inspectNodes= [];
 
+    function refreshInspector() {
 
+        var indent= '';
 
+        var nodeStr= function(i, node, prefix) {
+            return indent + prefix + "[" + i + ":"
+                + " move=" + node.move
+                + " prob=" + (Math.round((0 + node.prob) * 10000) / 10000)
+                + " nb=" + node.nb
+                + "]";
+        }
 
+        var node= inspectRootNode;
+        var html= 'MOVES:<br />';
+        indent += "&nbsp;&nbsp;";
 
+        for (var i in inspectNodes) {
+            node= node.childNodes[inspectNodes[i]];
+            var link= "<a href='javascript:_inspectorSetLevel(" + i + ")'>[-]</a>";
+            html += nodeStr(inspectNodes[i], node, link + "&nbsp;");
+            html += ":<br />";
+            indent += "&nbsp;&nbsp;";
+        }
 
+        node.childNodes.sort(function(a, b) {
+            return b.prob - a.prob;
+        });
+
+        for (var j in node.childNodes) {
+            var childNode= node.childNodes[j];
+            if (childNode.childNodes) {
+                var link= "[+]";
+                if (childNode.childNodes && childNode.childNodes.length) {
+                    link= "<a href='javascript:_inspectorAppend(" + j + ")'>" + link + "</a>";
+                }
+                html += nodeStr(j, childNode, link + "&nbsp;");
+                html += "<br />";
+            }
+        }
+
+        document.getElementById("inspector").innerHTML= html;
+    }
+
+    function _inspectorSetLevel(n) {
+        inspectNodes.splice(n, 9999);
+        refreshInspector();
+    }
+
+    function _inspectorAppend(n) {
+        inspectNodes[inspectNodes.length]= n;
+        refreshInspector();
+    }
+
+    function inspect(node) {
+        inspectRootNode= node;
+        inspectNodes= [];
+        refreshInspector();
+    }
 
 
 
@@ -1087,40 +994,22 @@
         var secs= document.getElementById('time').value;
         if (secs < 1) secs= 1;
 
-/*
-        var games= 0;
-        var gamesPerMove= 0;
-*/
+        var startTime= new Date().getTime();
 
-        var doMove= function(move) {
-            if (!tip) {
-                setAt[move]();
-                refreshBoard();
-                markCell(move, 'last-move');
-            }
-            else {
-                updateUI();
-                markCell(move, 'tip-move');
-            }
-    
-            status('Done.'
-                    + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
-                    + ' Calculated ' + games + ' games.'
-                , 3);
-        }
+        stopCalculating= 0; // FIXME: Hide in function
+        endTime= startTime + secs * 1000;
 
+        updateUI();
 
         var rootNode= {
-            move: 65,       // NOP
-            childNodes: [],
+            // move: 65,       // NOP
+            // childNodes: null,
             // validMoves: unique(getValidMoves())
             value: 0,
             nb: 0
         };
 
         captureBoard();
-
-        var INFINITY= 100000000000;
 
         function descendByUCB1(node) {
             var childNodes= node.childNodes;
@@ -1133,10 +1022,10 @@
             }
 
             // Math.log ist ln
-            var dividend= 2 * Math.log(nb); //  / Math.log(10);
+            var dividend= 4 * Math.log(nb); //  / Math.log(10);
             // var dividend= Math.log(nb) / 5;
 
-            var maxv= -INFINITY;
+            var maxv= -100000000000;
             var maxi= 0;
             i= childNodes.length;
             while (i--) {
@@ -1155,6 +1044,9 @@
                 childNode.prob= childNode.value / childNode.nb;
                 var v= Math.sqrt(dividend / childNode.nb) + childNode.prob;
 
+                // Anderes Ergebnis! Warum?
+                // var v= dividend / childNode.nb + childNode.prob * childNode.prob;
+
                 if (v > maxv) {
                     maxv= v;
                     maxi= i;
@@ -1169,7 +1061,7 @@
 
             var nodes= [ rootNode ];
             var nodei = 0;
-            while (nodes[nodei].childNodes.length) {
+            while (nodes[nodei].childNodes) {
                 nodes[nodei + 1]= descendByUCB1(nodes[nodei]);
                 setAt[nodes[nodei + 1].move]();
                 nodei++;
@@ -1179,10 +1071,13 @@
             var node= nodes[nodei];
 
             var uniqueNextMoves= unique(nextMoves);
+
+            // Hopefully fast, have to check
+            node.childNodes= Array(uniqueNextMoves.length);
             for (var i in uniqueNextMoves) {
                 node.childNodes[i]= {
                     move: uniqueNextMoves[i],
-                    childNodes: [],
+                    // childNodes: null,
                     // validMoves: nextMoves0,
                     value: 0,
                     nb: 0
@@ -1222,24 +1117,48 @@ if (xx++ > 300) {
             }
         }
 
-        setTimeout(function() {
-            for (var i= 0; i < 8000; i++) {
+        var games= 0;
+        var ngames= 8000;
+
+        var inner= function() {
+
+            status("To go: " + ngames, 0, 1);
+
+            for (var i= 0; i < 100 && ngames > 0; i++) {
                 playOneSequence();
+                ngames--;
+            }
+
+            if (ngames && !stopping()) {
+                setTimeout(inner, 1);
+                return;
             }
 
             var resultNode= rootNode.childNodes[0];
             for (var i= rootNode.childNodes.length; i-- > 1; ) {
+
+                console.warn("Move: " + rootNode.childNodes[i].move + " Prob:" + rootNode.childNodes[i].prob);
+                console.log(rootNode.childNodes[i]);
+
                 if (resultNode.prob < rootNode.childNodes[i].prob) {
                     resultNode= rootNode.childNodes[i];
                 }
             }
 
+            console.warn("I'll make Move: " + resultNode.move + " Prob:" + resultNode.prob);
+
             // var resultNode= descendByUCB1(rootNode);
             // playOneSequence();
 
             restoreBoard();
-            doMove(resultNode.move);
-        }, 1);
+            endTime= 0;
+
+            doMove(resultNode.move, tip, games);
+
+            inspect(rootNode);
+        };
+
+        setTimeout(inner, 1);
 
     }
 
@@ -1753,6 +1672,16 @@ if (xx++ > 300) {
     .button:hover {
         background-color: #DDD;
     }
+    #inspector {
+        position: absolute;
+        top: 8em;
+        left: 25em;
+        width: 400px;
+        height: auto;
+        border: 1px solid #666;
+        margin: 5px;
+        padding: 5px;
+    }
     .debug {
         x-display: none;
     }
@@ -1798,5 +1727,6 @@ if (xx++ > 300) {
         <div id="status_outer"><div id="status">&nbsp;</div></div>
         <div id="board"></div>
         <div id="console" class="debug"></div>
+        <div id="inspector" class="debug"></div>
     </div>
 </body>
