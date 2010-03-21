@@ -72,6 +72,7 @@
     var setAt;
 
     var computerCol= 0;
+    var oldComputerCol= 0;
 
     // ====================================================================
     //  Core
@@ -894,7 +895,7 @@
             restoreBoard();
             endTime= 0;
 
-            var r= function(v) { var s= '        ' + (Math.round(v * 10) / 10); return s.substr(s.length - 6); }
+            var r= function(v) { var s= '        ' + (Math.round(v * 10) / 10); return s.substr(s.length - 8); }
 
             var moveScore= [];
             for (var movei in moves) {
@@ -902,7 +903,7 @@
 
                 moveScore[move]= 0;
 
-                if (col == -1) {
+                if (col == 1 || col == 2) {
 
                     var s1= '';
 
@@ -915,14 +916,14 @@
 
                         var score0;
                         
-                        sum += (score0= Math.exp(score - gamesPerMove, 8));
+                        sum += (score0= Math.pow(score - gamesPerMove, 8));
                         sum1 += score;
 
                         // s1 += ' ' + moves2[movei][movei2] + ':' + score;
                         // s1 += '(' + r(score0) + ')';
                     }
 
-                    sum= Math.exp(sum, 1/8) * smin / moves2[movei].length;
+                    sum= Math.pow(sum, 1/8) * smin / moves2[movei].length;
 
                     moveScore[move]= Math.floor(sum * 1000);
 
@@ -935,7 +936,7 @@
 
                 }
 
-                if (col == 2) {
+                if (col == -2) {
                     var d1= 0;
                     var d2= 0;
                     var n= 0;
@@ -987,59 +988,60 @@
                 }
 
                 if (col == -1) {
-                    var d1= 0;
-                    var d2= 0;
-                    var n= 0;
-                    var s1= '';
+                    var n= moves2[movei].length;
+                    var scores= moveScore2[movei];
 
-                    for (movei2= moves2[movei].length; movei2--; ) {
-                        var score= moveScore2[movei][movei2];
-                        if (score < smin) smin= score;
-                        if (score > smax) smax= score;
-                        d1 += score;
-                        score= score < 0 ? -Math.pow(-score, 1.1) : Math.pow(score, 0.9);
-                        d2 += score;
-                        n++;
-                        s1 += ' ' + moves2[movei][movei2] + ':' + moveScore2[movei][movei2];
-                        s1 += '(' + r(score) + ')';
+                    var d= 0;
+                    for (var movei2= n; movei2--; ) {
+                        d += scores[movei2];
                     }
+                    d /= n;
 
-                    var d= d1 / n;
-
-                    var s= ('' + (move + 100)).substr(1) + ' -> ';
-
-                    var smin= 99999999;
-                    var smax= -99999999;
-
-                    var dd1 = 0;
-
-                    for (movei2= moves2[movei].length; movei2--; ) {
-                        var score= moveScore2[movei][movei2];
-                        dd1 += score < d ? d : score;
+                    var dd = 0;
+                    for (var movei2= n; movei2--; ) {
+                        var score= scores[movei2];
+                        dd += score < d ? d : score;
                     }
+                    moveScore[move]= dd / n;
 
-                    // var score2= d + Math.pow(smax - d, 1.1) - Math.pow(d - smin, 1.1);
-
-                    s += ' sum=' + r(d1);
-                    s += ' d=' + r(d);
-                    s += ' dd1=' + r(dd1 / n);
-
-                    // s += ' ~' + r(Math.pow(smax - d, 1.1)) + ' ~' + r(Math.pow(d - smin, 1.1));
-                    // s += ' max=' + r(smax) + ' min=' + r(smin);
-
-                    s += ' esum=' + r(d2);
-                    s += ' #=' + gamesPerMove;
-                    // s += s1;
-                    
-                    console.log("A3 " + s);
-
-                    moveScore[move]= Math.floor(100 * dd1 / n);
-
+                    if (1) {
+                        var debug= '';
+                        for (var movei2= n; movei2--; ) {
+                            var score= scores[movei2];
+                            debug += ' [' + moves2[movei][movei2] + ' ' + (score < d ? r(score) + '->' + r(d) : r(score)) + ']';
+                        }
+                        console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(moveScore[move]) + debug);
+                    }
                 }
 
-                console.log(moves2[movei]);
+                if (col == -2) {
+                    var n= moves2[movei].length;
+                    var scores= moveScore2[movei];
 
-                if (col == 1) {
+                    var d= 0;
+                    for (var movei2= n; movei2--; ) {
+                        d += scores[movei2];
+                    }
+                    d /= n;
+
+                    var dd = 0;
+                    for (var movei2= n; movei2--; ) {
+                        var score= scores[movei2];
+                        dd += score > d ? d : score;
+                    }
+                    moveScore[move]= dd / n;
+
+                    if (1) {
+                        var debug= '';
+                        for (var movei2= n; movei2--; ) {
+                            var score= scores[movei2];
+                            debug += ' [' + moves2[movei][movei2] + ' ' + (score > d ? r(score) + '->' + r(d) : r(score)) + ']';
+                        }
+                        console.log(colName(col) + " " + move + ": d=" + r(d) + " score=" + r(moveScore[move]) + debug);
+                    }
+                }
+
+                if (col == -1) {
 
                     var sum= 0;
                     for (movei2 in moves2[movei]) {
@@ -1051,11 +1053,11 @@
     
             moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
 
-            console.log(getValidMoves());
+            // console.log(getValidMoves());
 
             var scores= '';
             for (var movei in moves) {
-                scores += ' ' + moves[movei] + ':' + moveScore[moves[movei]];
+                scores += ' ' + moves[movei] + ':' + (Math.floor(moveScore[moves[movei]] * 10) / 10);
             }
             console.log("Scores:" + scores);
     
@@ -1220,13 +1222,17 @@
             return true;
         }
         if (endTime) {
-            status("Please wait until the computer has made it's move!");
+            status("Please wait until the computer has made it's move!", 0, true);
             return true;
         }
         return false;
     }
 
     function setComputerCol(newCol) {
+        if (computerCol == 3) {
+            oldComputerCol= newCol;
+            return;
+        }
         computerCol= newCol;
     }
 
@@ -1331,10 +1337,13 @@
     }
     
     function clickSettings() {
-         if (!initPosListDone) return;
+        if (!initPosListDone) return;
 
-         document.getElementById('computer_col_' + computerCol).checked= 1;
-         document.getElementById('settings').style.display= 'block';
+        // document.getElementById('computer_col_0').enabled= computerCol != 3;
+        // document.getElementById('computer_col_1').enabled= computerCol != 3;
+        // document.getElementById('computer_col_2').enabled= computerCol != 3;
+        document.getElementById('computer_col_' + (computerCol == 3 ? oldComputerCol : computerCol)).checked= 1;
+        document.getElementById('settings').style.display= 'block';
     }
 
     function clickCloseSettings() {
@@ -1345,13 +1354,13 @@
     }
 
     function clickAuto() {
-        var oldCol= computerCol;
+        oldComputerCol= computerCol;
         computerCol= 3;
 
         var wait= function() {
             if (!computing()) {
                 if (!computeMove() && !computeMove()) {
-                    computerCol= oldCol;
+                    computerCol= oldComputerCol;
                     console.log("GAME IS OVER");
                     return;
                 }
@@ -1386,22 +1395,14 @@
             initBoard();
 
 
-            // setAt[37](); setAt[29]();  setAt[21](); setAt[30]();  setAt[19](); setAt[44]();
-            // setAt[29](); setAt[37]();  setAt[45](); setAt[38]();  setAt[42](); setAt[22]();
-    
-            // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); 
-            // setAt[26](); setAt[20](); setAt[37](); setAt[34](); setAt[42](); setAt[44](); setAt[51](); setAt[52](); setAt[13](); setAt[50](); setAt[21](); setAt[12](); setAt[53](); setAt[22](); setAt[58](); setAt[49](); setAt[29](); setAt[4](); setAt[56]();
-    
-            // setAt[26](); setAt[20](); setAt[45](); setAt[42](); setAt[43](); setAt[44](); setAt[21](); setAt[46](); setAt[51](); setAt[22](); setAt[41](); setAt[58](); setAt[54](); setAt[19](); setAt[50](); setAt[63](); setAt[47](); setAt[33](); setAt[18](); setAt[10](); setAt[9](); setAt[0](); setAt[61](); setAt[52](); setAt[1](); setAt[11](); setAt[3](); setAt[37](); setAt[49](); setAt[56](); setAt[25](); setAt[17](); setAt[57](); setAt[48](); setAt[53](); setAt[40](); setAt[29](); setAt[8](); setAt[60](); setAt[2](); setAt[13](); setAt[4](); setAt[6](); setAt[32](); setAt[23](); setAt[31](); setAt[16](); setAt[24](); setAt[39](); setAt[14](); setAt[15](); setAt[34](); setAt[5](); setAt[62](); setAt[12](); setAt[59](); pass(); setAt[55](); setAt[38]();
-    
-            // Fehler, erzwingt kein weiss passen
-            setAt[44](); setAt[29](); setAt[18](); setAt[52](); setAt[53](); setAt[54](); setAt[45](); setAt[26](); setAt[63](); setAt[37](); setAt[34](); setAt[41](); setAt[62](); setAt[25](); setAt[17](); setAt[11](); setAt[51](); setAt[16](); setAt[9](); setAt[61](); setAt[46](); setAt[43](); setAt[38](); setAt[39](); setAt[60](); setAt[0](); setAt[42](); setAt[33](); setAt[40](); setAt[49](); setAt[50](); setAt[58](); setAt[59](); setAt[55](); setAt[32](); setAt[57](); setAt[47](); setAt[48](); 
-            setAt[24](); pass(); 
-            //       setAt[4](); setAt[19](); setAt[31](); setAt[3](); setAt[56](); setAt[5](); setAt[1](); setAt[2](); setAt[12](); setAt[10]();
-            //         setAt[8](); setAt[21](); setAt[20](); setAt[22](); setAt[23]();
-            //         setAt[13](); setAt[6](); setAt[15](); setAt[30](); setAt[7](); setAt[14](); 
+            // seltsamer move von weiss
+            // setAt[26](); setAt[34](); setAt[41](); setAt[18](); setAt[42](); setAt[25](); setAt[20](); setAt[33](); setAt[44](); setAt[53](); setAt[32](); setAt[40](); setAt[11](); setAt[10](); setAt[2](); setAt[17](); setAt[16](); setAt[24](); setAt[48]();
+            // setAt[8](); setAt[0](); setAt[51](); setAt[19](); setAt[49](); setAt[50](); setAt[12](); setAt[21](); setAt[9](); setAt[5](); setAt[4](); setAt[60](); setAt[58](); setAt[29](); setAt[13](); setAt[6](); setAt[7](); setAt[3](); setAt[1](); setAt[59](); setAt[57](); setAt[43](); setAt[45](); setAt[37](); setAt[52](); setAt[61](); setAt[38](); setAt[31](); setAt[39](); setAt[56](); setAt[22](); setAt[47]();
+            // setAt[62](); setAt[63](); setAt[30](); setAt[46]();
+            // setAt[54](); setAt[55](); setAt[64](); setAt[14](); setAt[23](); setAt[15](); setAt[64](); 
 
-
+            setAt[44](); setAt[45](); setAt[19](); setAt[43](); setAt[37](); setAt[29](); setAt[30](); setAt[22](); setAt[38](); setAt[46](); setAt[21](); setAt[12](); setAt[5](); setAt[3](); setAt[13](); setAt[4](); setAt[2](); setAt[26](); setAt[42](); setAt[41](); setAt[20](); setAt[11](); setAt[10](); setAt[18](); setAt[34](); setAt[17](); setAt[6](); setAt[9](); setAt[23](); setAt[31](); setAt[25](); setAt[24](); setAt[47](); setAt[33](); setAt[40](); setAt[53](); setAt[61](); setAt[50](); setAt[58](); setAt[55]();
+            // setAt[51](); setAt[60](); setAt[59](); setAt[15](); setAt[62](); setAt[48](); setAt[0](); setAt[32](); setAt[63](); setAt[52](); setAt[1](); setAt[57](); setAt[16](); setAt[8](); setAt[56](); setAt[54](); setAt[39](); setAt[14](); setAt[7](); setAt[64](); setAt[49](); setAt[64](); 
 
             refreshBoard();
             defaultStatus();
