@@ -18,11 +18,14 @@
     
     var undefined= undefined;   // jQuery does that. So it's correct. qed.
 
+    var validMovesCheck;
+
     function initBoard() {
         posH= [];
         posV= [];
         posDiag1= [];
         posDiag2= [];
+        validMovesCheck= [];
         
         for (var y= 8; y--; ) {
             posH.push(0);
@@ -32,6 +35,10 @@
         for (var y= 15; y--; ) {
             posDiag1.push(0);
             posDiag2.push(0);
+        }
+
+        for (var i= 64; i--; ) {
+            validMovesCheck.push(0);
         }
         
         boardLog= [];
@@ -81,7 +88,8 @@
                 i++;
             }
         }
-        getValidMoves();
+        var cells= getValidMoves();
+        markCells(cells);
     }
 
     function unmarkAllCells() {
@@ -232,23 +240,28 @@
 
     function getValidMoves() {
 
+        var check= validMovesCheck.concat();
+        var result= [];
+
         var checkValid= function(move, fvv, label, base, mul, len) {
             var valid= posList[fvv ^ colMask];
             var i= 3;
             while (i--) {
-                if (valid[i] > len) break;
+
+                if (valid[i] >= len) break;
 
                 var cell= base + mul * valid[i];
-                console.log(label + ": valid(" + move + "," + '.OX'.substr(col, 1) + ")="
-                    + cell
-                    + ' (base=' + base + ' valid[' + i + ']=' + valid[i] + ')'
-                );
+                if (check[cell]) break;
 
-                markCell(cell, 'valid-move');
+                check[cell]= 1;
+                result[result.length]= cell;    // Faster than push, according to the net
+                
+                // console.log(label + ": valid(" + move + "," + '.OX'.substr(col, 1) + ")="
+                //     + cell
+                //     + ' (base=' + base + ' valid[' + i + ']=' + valid[i] + ')'
+                // );
             }
         }
-
-        unmarkAllCells();
 
         for (var i= 0; i < 8; i++) {
             checkValid(i, posH[i],  'V  ', i * 8, 1, 8);
@@ -262,6 +275,13 @@
             checkValid(i, posDiag1[i], 'D1B', (i - 7) * 8, 9,  15 - i);
             checkValid(i, posDiag2[i], 'D2B', 49 + i,      -7, 15 - i);
         }
+        
+        return result;
+    }
+
+    function markCells(cells) {
+        unmarkAllCells();
+        for (var i in cells) markCell(cells[i], 'valid-move');
     }
 
     function pldump(pos, movei) {
@@ -278,7 +298,7 @@
             result += '.OX,'.substr((newpos ^ colMask) & 3, 1);
             newpos >>= 2;
         }
-        return result;
+        return result + ' ' + pos;
     }
 
     function clickDump(posXName) {
@@ -301,29 +321,35 @@
         var movex2, movey2;
         var movexd, moveyd;
 
+        var qmovex, qmovey;
+        var qmovex2, qmovey2;
         var qmovexd, qmoveyd;
 
         var quickSetAt= function(dx, dy) {
 
-            var qmovex= movex;
-            var qmovey= movey;
+            qmovex= movex;
+            qmovey= movey;
 
             while (qi) {
 
-console.log("QUICKSET x=" + qmovex + " y=" + qmovey);
+                diff += colDiff + colDiff;
+
+                // console.log("QUICKSET x=" + qmovex + " y=" + qmovey + " diff=" + diff);
 
                 qmovex += dx;
                 qmovey += dy;
+                qmovex2= qmovex + qmovex;
+                qmovey2= qmovey + qmovey;
 
-                posH[qmovey]= posH[qmovey] & ~(3 << (qmovex + qmovex)) | (col << (qmovex + qmovex));
+                posH[qmovey]= posH[qmovey] & ~(3 << qmovex2) | (col << qmovex2);
     
-                posV[qmovex]= posV[qmovex] & ~(3 << (qmovey + qmovey)) | (col << (qmovey + qmovey));
+                posV[qmovex]= posV[qmovex] & ~(3 << qmovey2) | (col << qmovey2);
     
-                qmovexd= qmovex >= qmovey ? qmovey + qmovey : qmovex + qmovex;
+                qmovexd= qmovex >= qmovey ? qmovey2 : qmovex2;
                 qmoveyd= qmovey - qmovex + 7;
                 posDiag1[qmoveyd]= posDiag1[qmoveyd] & ~(3 << qmovexd) | (col << qmovexd);
     
-                qmovexd= (7 - qmovex) >= qmovey ? qmovex + qmovex : 14 - qmovey - qmovey;
+                qmovexd= (7 - qmovex) >= qmovey ? qmovex2 : 14 - qmovey2;
                 qmoveyd= qmovey + qmovex;
                 posDiag2[qmoveyd]= posDiag2[qmoveyd] & ~(3 << qmovexd) | (col << qmovexd);
 
@@ -332,37 +358,47 @@ console.log("QUICKSET x=" + qmovex + " y=" + qmovey);
         };
 
         boardLog[boardLog.length]= move;
+        diff += colDiff;
 
-        // movex += movex >> 3;
+        movex2= movex + movex;
+        movey2= movey + movey;
 
         pos= posList[posH[movey] ^ colMask];
-        posH[movey] |= col << (movex + movex);
+        posH[movey] |= col << movex2;
 
-        if (qi= pos[19 + movex + movex]) quickSetAt(-1, 0);
-        if (qi= pos[20 + movex + movex]) quickSetAt( 1, 0);
+        if (qi= pos[movex2 + 19]) quickSetAt(-1, 0);
+        if (qi= pos[movex2 + 20]) quickSetAt( 1, 0);
 
         pos= posList[posV[movex] ^ colMask];
-        posV[movex] |= col << (movey * 2);
+        posV[movex] |= col << movey2;
 
-        if (qi= pos[19 + movey + movey]) quickSetAt(0, -1);
-        if (qi= pos[20 + movey + movey]) quickSetAt(0,  1);
+        if (qi= pos[movey2 + 19]) quickSetAt(0, -1);
+        if (qi= pos[movey2 + 20]) quickSetAt(0,  1);
 
-        movexd= movex >= movey ? movey + movey : movex + movex;
+        movexd= movex >= movey ? movey2 : movex2;
         moveyd= movey - movex + 7;
         pos= posList[posDiag1[moveyd] ^ colMask];
         posDiag1[moveyd] |= col << movexd;
 
-        if (qi= pos[19 + movexd]) quickSetAt(-1, -1);
-        if (qi= pos[20 + movexd]) quickSetAt( 1,  1);
+        if (qi= pos[movexd + 19]) quickSetAt(-1, -1);
+        if (qi= pos[movexd + 20]) quickSetAt( 1,  1);
 
-        movexd= (7 - movex) >= movey ? movex + movex : 14 - movey - movey;
+        movexd= (7 - movex) >= movey ? movex2 : 14 - movey2;
         moveyd= movey + movex;
         pos= posList[posDiag2[moveyd] ^ colMask];
         posDiag2[moveyd] |= col << movexd;
 
-        if (qi= pos[19 + movexd]) quickSetAt(-1,  1);
-        if (qi= pos[20 + movexd]) quickSetAt( 1, -1);
+        if (qi= pos[movexd + 19]) quickSetAt(-1,  1);
+        if (qi= pos[movexd + 20]) quickSetAt( 1, -1);
 
+        col= 3 - col;
+        colMask= 65535 - colMask;
+        colDiff= -colDiff;
+
+        // console.log("SETAT: diff=" + diff);
+    }
+
+    function pass() {
         col= 3 - col;
         colMask= 65535 - colMask;
         colDiff= -colDiff;
@@ -401,6 +437,94 @@ console.log("QUICKSET x=" + qmovex + " y=" + qmovey);
         }
         setAt(move);
         refreshBoard();
+        setTimeout(function() { computeMove(); }, 1);
+    }
+
+    function autoPlay() {
+        while (1) {
+            var moves= getValidMoves();
+            if (moves.length == 0) {
+                pass();
+                moves= getValidMoves();
+                if (moves.length == 0) break;
+            }
+            var move= moves[Math.floor(Math.random() * moves.length)];
+            setAt(move);
+        }        
+    }
+
+    function clickAutoPlay() {
+        autoPlay();
+        refreshBoard();
+    }
+
+    function captureBoard() {
+        return {
+            boardLog: boardLog.concat(),
+            col: col,
+            colMask: colMask,
+            colDiff: colDiff,
+            diff: diff,
+            posH: posH.concat(),
+            posV: posV.concat(),
+            posDiag1: posDiag1.concat(),
+            posDiag2: posDiag2.concat()
+        };
+    }
+
+    function restoreBoard(capture) {
+        boardLog= capture.boardLog;
+        col= capture.col;
+        colMask= capture.colMask;
+        colDiff= capture.colDiff;
+        diff= capture.diff;
+        posH= capture.posH;
+        posV= capture.posV;
+        posDiag1= capture.posDiag1;
+        posDiag2= capture.posDiag2;
+    }
+
+    function computeMove() {
+        var moves= getValidMoves();
+        if (moves.length == 0) return;
+
+        var moveScore= {};
+        for (var movei in moves) {
+            moveScore[moves[movei]]= 0;
+        }
+
+        var endTime= new Date().getTime() + 5 * 1000;
+        var games= 0;
+
+        while (new Date().getTime() < endTime) {
+            for (var n= 0; n < 100; n++) {
+                for (var movei in moves) {
+                    var capture= captureBoard();
+                    setAt(moves[movei]);
+                    autoPlay();
+                    if (capture.col == 1 && moveScore[moves[movei]] > diff) moveScore[moves[movei]]= diff;
+                    if (capture.col == 2 && moveScore[moves[movei]] < diff) moveScore[moves[movei]]= diff;
+                    restoreBoard(capture);
+                    games++;
+                }
+                console.log("Thinking...");
+            }
+            // console.log(endTime - date.getTime());
+        }
+
+        console.log('Done... (' + games + ' games)');
+        
+        if (col == 1) moves.sort(function(a, b) { return moveScore[a] - moveScore[b]; });
+        if (col == 2) moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
+
+        var move= moves[0];
+        setAt(move);
+        refreshBoard();
+
+        console.log('Moved: (' + move + ') ' + (move & 3) + ',' + (move >> 3));
+        
+        // console.log(moves);
+        // console.log(moveScore);
     }
 
     function doOnload() {
@@ -448,6 +572,8 @@ console.log("QUICKSET x=" + qmovex + " y=" + qmovey);
     <a href="javascript:clickDump('posV');">posV</a>
     <a href="javascript:clickDump('posDiag1');">posDiag1</a>
     <a href="javascript:clickDump('posDiag2');">posDiag2</a>
+    <a href="javascript:clickAutoPlay();">AUTOPLAY</a>
+    <a href="javascript:computeMove();">computeMove</a>
     <hr>
     <div id="board"></div>
 </body>
