@@ -35,7 +35,7 @@
     var diff;                   // Current score (if positive, points that white is ahead, otherwise -points that black is ahead)
 
     var posList;                // See initPosList
-    var initPosListDone= 0;
+    var initPosListDone;
     
     var undefined= undefined;   // jQuery does that. So it's correct. qed.
 
@@ -46,16 +46,47 @@
 
     var endTime= 0;             // Used by computeMove()
 
+    var cellScore;
+
+    var setAt2;
+
     // ====================================================================
     //  Core
     // ====================================================================
+
+    function initCellScore() {
+        cellScore= [];
+        for (var i= 0; i < 64; i++) {
+            cellScore[i]= 2;
+        }
+        for (var i= 0; i < 8; i++) {
+            cellScore[i] += 2;
+            cellScore[i * 8] += 2;
+            cellScore[i + 56] += 2;
+            cellScore[i * 8 + 7] += 2;
+        }
+        for (var i= 2; i < 6; i++) {
+            cellScore[i + 16]++;
+            cellScore[i * 8 + 2]++;
+            cellScore[i + 40]++;
+            cellScore[i * 8 + 5]++;
+        }
+        cellScore[9]= cellScore[14]= cellScore[49]= cellScore[54]= 1;
+    }
+
+    function initMovesCheck() {
+        validMovesCheck= [];
+
+        for (var i= 64; i--; ) {
+            validMovesCheck.push(0);
+        }
+    }
 
     function initBoard() {
         posH= [];
         posV= [];
         posDiag1= [];
         posDiag2= [];
-        validMovesCheck= [];
         
         for (var y= 8; y--; ) {
             posH.push(0);
@@ -67,10 +98,6 @@
             posDiag2.push(0);
         }
 
-        for (var i= 64; i--; ) {
-            validMovesCheck.push(0);
-        }
-        
         boardLog= [];
 
         col= 1;
@@ -79,10 +106,10 @@
         
         diff= 0;
 
-        setAt(27);
-        setAt(28);
-        setAt(36);
-        setAt(35);
+        setAt2[27]();
+        setAt2[28]();
+        setAt2[36]();
+        setAt2[35]();
 
         status("Let's go!", 1);
     }
@@ -100,15 +127,20 @@
     //      flipped0-left, flipped0-right, flipped1-left, flipped1-right, ... , flipped7-left, flipped7-right,
     //  ]
     //
-    //  validN      Valid moves for white in that position.
+    //  validN      0..  Valid moves for white in that position.
     //
-    //  newposN     New position if white's move is N.
+    //  newposN     3..  New position if white's move is N.
     //              The new position includes the flipped captures stones if there are any.
     //
-    //  flippedN    Number of flipped stones to the left and to the right if white's move is N.
+    //  flippedN    11.. Number of flipped stones to the left and to the right if white's move is N.
+    //
+    //  // set1N       27.. DOCME
+    //
+    //  // set2N       35.. DOCME
     //
     function initPosList() {
     
+        initPosListDone= 0;
         posList= new Array(65536);
 
         var pos0= 0;
@@ -120,11 +152,11 @@
                 want1, want2, wantpos,
                 j,
                 valid,
-                flipped;
+                newpos, flipped; // , set1, set2;
 
             for (chunk= 8192; chunk--; pos0++) {
     
-                pos= newpos= pos0;
+                pos= pos0;
                 had= want1= want2= 0;
                 had1pos= wantpos= -1;
                 valid= [ 9, 9, 9 ];
@@ -133,7 +165,7 @@
                 validi= 0;
     
                 for (j= 0; j < 8; j++) {
-    
+
                     if ((pos & 3) == 1) {
                         if (wantpos >= 0) {
                             if (want2) {
@@ -172,16 +204,15 @@
                         wantpos= j;
                         had= want1= want2= 0;
 
-                        newpos[j]= newpos[j]
-                            & ~(3 << (j + j))
-                            |   1 << (j + j);
+                        newpos[j]= newpos[j] & ~(3 << (j + j)) | (1 << (j + j));
                     }
+
                     pos >>= 2;
                 }
 
                 // Additionally to it's purpose of concating, "concat" clones the array, which is
                 // what we need here.
-                posList[pos0]= valid.sort().reverse().concat(newpos).concat(flipped);
+                posList[pos0]= valid.sort().concat(newpos).concat(flipped); // .concat(set1).concat(set2);
 
                 // console.log(valid);
             }
@@ -203,10 +234,10 @@
         var result= [];
 
         result.push(""
-            , "\n    function() {"
-            , "\n       var check= validMovesCheck.concat();"
-            , "\n       var valid, cell;"
-            , "\n       var result= [];"
+            , " function() {"
+            , "     var check= validMovesCheck.concat();"
+            , "     var valid, cell;"
+            , "     var result= [];"
         );
 
         var checkValid= function(posArray, move, base, mul, len) {
@@ -214,7 +245,7 @@
             // result[result.length] is faster than result.push, according to the net
 
             result.push(""
-                , "\n       valid= posList[" + posArray + "[" + move + "] ^ colMask];"
+                , "     valid= posList[" + posArray + "[" + move + "] ^ colMask];"
             );
 
             if (mul == -1) mul= ' - ';
@@ -224,18 +255,20 @@
 
             if (base == 0) base= '';
 
-            var i= 3;
-            while (i--) {
+            for (var i= 0; i < 3; i++) {
                 result.push(""
-                    , "\n       if (valid[" + i + "] < " + len + ") {"
-                    , "\n           cell= " + base + mul + "valid[" + i + "];"
-                    , "\n           if (check[cell] == 0) {"
-                    , "\n               check[cell]= 1;"
-                    , "\n               result[result.length]= cell;"
-                    , "\n           }"
-                    , "\n       }"
+                    , "     if (valid[" + i + "] < " + len + ") {"
+                    , "         cell= " + base + mul + "valid[" + i + "];"
+                    , "         if (check[cell] == 0) {"
+                    , "             check[cell]= 1;"
+                    , "             var score= cellScore[cell];"
+                    , "             while (score--) result[result.length]= cell;"
+                    , "         }"
                 );
             };
+            result.push(""
+                , "     }}}"
+            );
         }
 
         for (var i= 0; i < 8; i++) {
@@ -252,14 +285,31 @@
         }
 
         result.push(""
-            , "\n       return result;"
-            , "\n   }"
+            , "     return result;"
+            , " }"
         );
+
+        // console.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
 
+    function unique(a) {
+        var lookup= [];
+        var result= [];
+        for (var i= a.length; i--; ) {
+            if (lookup[a[i]] == undefined) result[result.length]= a[i];
+            lookup[a[i]]= 1;
+        }
+        return result;
+    }
+
     function setAt(move) {
+
+        setAt2[move]();
+        return;
+
+
         var movey= move >> 3;
         var movex= move & 7;
         var pos, qi;
@@ -270,6 +320,8 @@
         var qmovex, qmovey;
         var qmovex2, qmovey2;
         var qmovexd, qmoveyd;
+
+        var plColInx= 19 + col * 8;
 
         var quickSetAt= function(dx, dy) {
 
@@ -344,6 +396,162 @@
         // console.log("SETAT: diff=" + diff);
     }
 
+    function makeSetAt(move) {
+
+        var movey= move >> 3;
+        var movex= move & 7;
+
+        var movex2, movey2;
+        var movexd, moveyd;
+
+        var result= [];
+
+        result.push(""
+            , " function() {"
+            , "     var pos, qi;"
+        );
+
+        var shl= function(name, value) {
+            if (value) return '(' + name + ' << ' + value + ')';
+            return name;
+        };
+
+        // fixme: name turn
+        var quickSetAt= function(dx, dy) {
+
+            var qmovex= movex;
+            var qmovey= movey;
+
+            var brackets= '   ';
+
+            for (var max= 1; max < 7; max++) {
+
+                qmovex += dx;
+                qmovey += dy;
+
+                if (qmovex < 0 || qmovex >= 8 || qmovey < 0 || qmovey >= 8) break;
+
+                var qmovex2= qmovex + qmovex;
+                var qmovey2= qmovey + qmovey;
+
+                var qmovedax= qmovex >= qmovey ? qmovey2 : qmovex2;
+                var qmoveday= qmovey - qmovex + 7;
+
+                var qmovedbx= (7 - qmovex) >= qmovey ? qmovex2 : 14 - qmovey2;
+                var qmovedby= qmovey + qmovex;
+
+                if (max > 1) {
+                    result.push(""
+                        , "     if (qi >= " + max + ") {"
+                    );
+                    brackets += '}';
+                }
+                
+                result.push(""
+                    , "         diff += colDiff + colDiff;"
+
+                    // console.log("QUICKSET x=" + qmovex + " y=" + qmovey + " diff=" + diff);
+
+                    , "         posH[" + qmovey + "]= posH[" + qmovey + "] & " + (~(3 << qmovex2)) + " | " + shl('col', qmovex2) + ";"
+                    , "         posV[" + qmovex + "]= posV[" + qmovex + "] & " + (~(3 << qmovey2)) + " | " + shl('col', qmovey2) + ";"
+                    , "         posDiag1[" + qmoveday + "]= posDiag1[" + qmoveday + "] & " + (~(3 << qmovedax)) + " | " + shl('col', qmovedax) + ";"
+                    , "         posDiag2[" + qmovedby + "]= posDiag2[" + qmovedby + "] & " + (~(3 << qmovedbx)) + " | " + shl('col', qmovedbx) + ";"
+                );
+            }
+            
+            result.push(""
+                , brackets
+            );
+
+        };
+
+        movex2= movex + movex;
+        movey2= movey + movey;
+
+        result.push(""
+            , "     boardLog[boardLog.length]= " + move + ";"
+            , "     diff += colDiff;"
+
+            , "     pos= posList[posH[" + movey + "] ^ colMask];"
+            , "     posH[" + movey + "] |= " + shl('col', movex2) + ";"
+
+            , "     if (qi= pos[" + (movex2 + 11) + "]) {"
+        );
+                        quickSetAt(-1, 0);
+
+        result.push(""
+            , "     }"
+            , "     if (qi= pos[" + (movex2 + 12) + "]) {"
+        );
+                        quickSetAt( 1, 0);
+
+        result.push(""
+            , "     }"
+
+            , "     pos= posList[posV[" + movex + "] ^ colMask];"
+            , "     posV[" + movex + "] |= " + shl('col', movey2) + ";"
+
+            , "     if (qi= pos[" + (movey2 + 11) + "]) {"
+        );
+                        quickSetAt( 0, -1);
+
+        result.push(""
+            , "     }"
+            , "     if (qi= pos[" + (movey2 + 12) + "]) {"
+        );
+                        quickSetAt( 0, 1);
+
+        movexd= movex >= movey ? movey2 : movex2;
+        moveyd= movey - movex + 7;
+
+        result.push(""
+            , "     }"
+
+            , "     pos= posList[posDiag1[" + moveyd + "] ^ colMask];"
+            , "     posDiag1[" + moveyd + "] |= " + shl('col', movexd) + ";"
+
+            , "     if (qi= pos[" + (movexd + 11) + "]) {"
+        );
+                        quickSetAt(-1, -1);
+        result.push(""
+            , "     }"
+            , "     if (qi= pos[" + (movexd + 12) + "]) {"
+        );
+                        quickSetAt( 1, 1);
+
+        movexd= (7 - movex) >= movey ? movex2 : 14 - movey2;
+        moveyd= movey + movex;
+
+        result.push(""
+            , "     }"
+
+            , "     pos= posList[posDiag2[" + moveyd + "] ^ colMask];"
+            , "     posDiag2[" + moveyd + "] |= " + shl('col', movexd) + ";"
+
+            , "     if (qi= pos[" + (movexd + 11) + "]) {"
+        );
+                        quickSetAt(-1, 1);
+
+        result.push(""
+            , "     }"
+            , "     if (qi= pos[" + (movexd + 12) + "]) {"
+        );
+                        quickSetAt( 1, -1);
+
+        result.push(""
+            , "     }"
+
+            , "     col= 3 - col;"
+            , "     colMask= 65535 - colMask;"
+            , "     colDiff= -colDiff;"
+            , " }"
+        );
+        
+//        console.log(result.join("\n")); die();
+
+        eval("setAt2[" + move + "]= (" + result.join("\n") + ");");
+    }
+
     function pass() {
         if (boardLog.length >= 64) return;
 
@@ -363,7 +571,7 @@
                 pass();
                 continue;
             }
-            setAt(flog2[i]);
+            setAt2[flog2[i]]();
         }
     }
 
@@ -383,7 +591,7 @@
                 if (moves.length == 0) break;
             }
             var move= moves[Math.floor(Math.random() * moves.length)];
-            setAt(move);
+            setAt2[move]();
         }        
     }
 
@@ -412,25 +620,6 @@
         capColMask= colMask;
         capColDiff= colDiff;
         capDiff= diff;
-        
-        return;
-
-        // Originally it was like this, but concat seemes to have
-        // an insane implementation in FF3, it swallows memory faster
-        // that you can look.
-        /*
-            return {
-                boardLog: boardLog.concat(),
-                col: col,
-                colMask: colMask,
-                colDiff: colDiff,
-                diff: diff,
-                posH: posH.concat(),
-                posV: posV.concat(),
-                posDiag1: posDiag1.concat(),
-                posDiag2: posDiag2.concat()
-            };
-        */
     }
 
     function restoreBoard() {
@@ -464,10 +653,11 @@
     }
 
     function computeMove(tip) {
-        var moves= getValidMoves();
+        var moves= unique(getValidMoves());
         if (moves.length == 0) {
             status('Pass. I can\'t make a move :-(', 3);
             pass();
+            refreshBoard();
             return;
         }
 
@@ -478,7 +668,7 @@
 
         var doMove= function(move) {
             if (!tip) {
-                setAt(move);
+                setAt2[move]();
                 refreshBoard();
                 markCell(move, 'last-move');
             }
@@ -528,7 +718,7 @@
                 for (var n= 10; n--; ) {
                     for (var movei in moves) {
                         captureBoard();
-                        setAt(moves[movei]);
+                        setAt2[moves[movei]]();
                         autoPlay();
 
                         if (capCol == 1) {
@@ -552,6 +742,8 @@
     
             moves.sort(function(a, b) { return moveScore[b] - moveScore[a]; });
 
+            console.log(getValidMoves());
+
             var scores= '';
             for (var movei in moves) {
                 scores += ' ' + moves[movei] + ':' + moveScore[moves[movei]];
@@ -560,7 +752,6 @@
     
             doMove(moves[0]);
             
-            // console.log(moves);
             // console.log(moveScore);
         }
 
@@ -663,18 +854,13 @@
     //  Debugging
     // ====================================================================
 
-    function pldump(pos, movei) {
+    function pldump(pos) {
 
-    // console.log(pos);
-    // console.log(posList[pos]);
-
-        var newpos= movei == undefined
-            ? pos
-            : posList[pos][3 + movei];
+        var newpos= pos;
         var i= 8;
-        var result= movei + ': ';
+        var result= '';
         while (i--) {
-            result += stone(newpos ^ colMask);
+            result += '.OX,'.substr((newpos ^ colMask) & 3, 1);
             newpos >>= 2;
         }
         return result + ' ' + pos;
@@ -709,7 +895,7 @@
             status("Cell is already taken!", 3);
             return;
         }
-        var moves= getValidMoves();
+        var moves= unique(getValidMoves());
         var ok= 0;
         for (var movei in moves) {
             if (moves[movei] == move) { ok= 1; break; }
@@ -718,7 +904,7 @@
             status("Not a valid move!" + move, 2);
             return;
         }
-        setAt(move);
+        setAt2[move]();
         refreshBoard();
         setTimeout(function() { computeMove(); }, 100);
     }
@@ -765,9 +951,18 @@
     }
 
     function doOnload() {
-        initPosList();
+
+        initMovesCheck();
+        initCellScore();
 
         makeGetValidMoves();
+
+        setAt2= []
+        for (var i= 0; i < 64; i++) {
+            makeSetAt(i);
+        }
+        
+        initPosList();
 
         var ready= function() {
             if (!initPosListDone) {
@@ -805,6 +1000,9 @@
     }
     #board .cell {
         position: relative;
+        overflow: hidden;
+        width: 40px;
+        height: 40px;
     }
     #board .cell div {
         width: 40px;
@@ -855,7 +1053,7 @@
         background-color: #DDD;
     }
     .debug {
-        display: none;
+        x-display: none;
     }
     #head {
         background-color: black;        
