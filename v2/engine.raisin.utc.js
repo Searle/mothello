@@ -199,7 +199,7 @@ Reversi.addEngine({
             }
         }
 
-        setTimeout(function() {
+        UI.setTimeout(function() {
             for (var i= 0; i < 8000; i++) {
                 playOneSequence();
             }

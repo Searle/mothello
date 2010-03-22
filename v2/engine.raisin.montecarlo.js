@@ -282,7 +282,7 @@ Compute= (function() {
 
                     }
                 }
-                setTimeout(inner, 1);
+                UI.setTimeout(inner, 1);
                 return;
             }
 
@@ -305,7 +305,7 @@ Compute= (function() {
             // UI.log(scores);
         }
 
-        setTimeout(inner, 1);
+        UI.setTimeout(inner, 1);
     };
 
 

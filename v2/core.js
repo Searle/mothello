@@ -228,14 +228,17 @@ Core= (function() {
 
                 // UI.log(valid);
             }
+
+UI.log("iniPosList: " + pos0);
+
             if ( pos0 < 65536 ) {
-                setTimeout(nextChunk, 1);
+                UI.setTimeout(function() { nextChunk(); }, 1);
                 return;
             }
             if ( doneFn ) doneFn();
             UI.log("initPosList DONE");
         }
-        setTimeout(nextChunk, 1);
+        UI.setTimeout(function() { nextChunk(); }, 1);
     }
 
 

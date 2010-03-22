@@ -5,9 +5,10 @@
 //  (c) 2008 by Dietrich Raisin, info1@raisin.de, www.raisin.de
 //
 //  Released under the Artistic License 2.0. Here are the terms:
+//  http://www.opensource.org/licenses/artistic-license-2.0.php
 // ====================================================================
 
-UI= (function() {
+UI.Browser= (function() {
 
     // ====================================================================
     //  Output
@@ -67,7 +68,7 @@ UI= (function() {
         for (var y= 0; y < 8; y++) {
             html += '<tr>';
             for (var x= 0; x < 8; x++, i++) {
-                html += '<td onclick="Reversi.clickCell(' + i + ')" id="cell' + i + '"><div class="cell"></div></td>';
+                html += '<td onclick="UI.Browser.priv.clickCell(' + i + ')" id="cell' + i + '"><div class="cell"></div></td>';
             }
             html += '</tr>';
         }
@@ -163,7 +164,6 @@ UI= (function() {
             document.getElementById('button_' + button).className= on ? 'button' : 'button_off';
         };
 
-        // <a id="button_new_game" class="button" href="javascript:clickNewGame();">New</a>
         up("new_game",  !computing && begun);
         up("undo",      !computing && begun);
         up("pass",      !computing && !is_finished);
@@ -362,9 +362,15 @@ UI= (function() {
         wait();
     }
 
-    var init= function() {
+    var init= function(doneFn) {
         printBoard();
-    }
+        doneFn();
+    };
+
+    var ready= function() {
+        refreshBoard();
+        defaultStatus();
+    };
 
     var log;
 
@@ -382,27 +388,32 @@ UI= (function() {
     }
 
     return {
-        init:           init,
-        clickNewGame:   clickNewGame,
-        clickUndo:      clickUndo,
-        clickPass:      clickPass,
-        clickTip:       clickTip,
-        clickStop:      clickStop,
-        clickSettings:  clickSettings,
-        clickDump:      clickDump,
-        clickAuto:      clickAuto,
-        setComputerCol: setComputerCol,
-        clickCloseSettings: clickCloseSettings,
-        clickCell:      clickCell,
+        init:       init,
+        ready:      ready,
+        status:     status,
+        log:        log,
+        setTimeout: function (fn, ms) { return setTimeout(fn, ms); },
 
-        // Callbacks:
-        status: status,
-        defaultStatus: defaultStatus,
+        priv: {
+            newGame:        clickNewGame,
+            undo:           clickUndo,
+            pass:           clickPass,
+            tip:            clickTip,
+            stop:           clickStop,
+            dump:           clickDump,
+            auto:           clickAuto,
+            setComputerCol: setComputerCol,
+            openSettings:   clickSettings,
+            closeSettings:  clickCloseSettings,
+            clickCell:      clickCell,
+        },
         
-        log: log,
-        refreshBoard: refreshBoard, // Callback from Core
-        updateUI: updateUI,  // Callback from Core
-        markCell: markCell,  // Callback from Core
+        // Callbacks:
+
+//        defaultStatus: defaultStatus,
+//        refreshBoard: refreshBoard, // Callback from Core
+//        updateUI: updateUI,  // Callback from Core
+//        markCell: markCell,  // Callback from Core
     }
 
 })();   // END UI
