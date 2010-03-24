@@ -6,8 +6,8 @@
     <script type="text/javascript" src="core.js"></script>
     <script type="text/javascript" src="main.js"></script>
     <script type="text/javascript" src="ui.browser.js"></script>
-    <script type="text/javascript" src="engine.raisin.montecarlo.js"></script>
     <script type="text/javascript" src="engine.raisin.random.js"></script>
+    <script type="text/javascript" src="engine.raisin.montecarlo.js"></script>
 
     <style>
         .debug {
@@ -18,39 +18,43 @@
 <body onload="Reversi.init('Browser')">
     <div id="head">
         <h1>MoThello</h1>
-        <small>(c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a></small>
+        <small>(c) 2008 by Dietrich Raisin, info@raisin.de, <a href="#">www.raisin.de</a></small>
     </div>
     <div id="body">
         <div>
             <table cellspacing="0" cellpadding="0"><tr>
-                <td><a id="button_new_game" class="button_off" href="javascript:UI.Browser.priv.newGame();">New</a></td>
-                <td><a id="button_undo"     class="button_off" href="javascript:UI.Browser.priv.undo();">Undo</a></td>
-                <td><a id="button_pass"     class="button_off" href="javascript:UI.Browser.priv.pass();">Pass</a></td>
-                <td><a id="button_tip"      class="button_off" href="javascript:UI.Browser.priv.tip();">Tip</a></td>
-                <td><a id="button_stop"     class="button_off" href="javascript:UI.Browser.priv.stop();">Stop</a></td>
-                <td><a id="button_settings" class="button_off" href="javascript:UI.Browser.priv.settings();">Settings</a></td>
+                <td><a id="do-new_game"         class="button off" href="#">New</a></td>
+                <td><a id="do-undo"             class="button off" href="#">Undo</a></td>
+                <td><a id="do-pass"             class="button off" href="#">Pass</a></td>
+                <td><a id="do-tip"              class="button off" href="#">Tip</a></td>
+                <td><a id="do-stop"             class="button off" href="#">Stop</a></td>
+                <td><a id="do-pause"            class="button off" href="#">Pause</a></td>
+                <td><a id="do-open_settings"    class="button off" href="#">Options</a></td>
             </tr></table>
 
             <span class="debug">
-                <a class="button" href="javascript:UI.Browser.priv.clickDump('posH');">posH</a>
-                <a class="button" href="javascript:UI.Browser.priv.clickDump('posV');">posV</a>
-                <a class="button" href="javascript:UI.Browser.priv.clickDump('posDiag1');">posDiag1</a>
-                <a class="button" href="javascript:UI.Browser.priv.clickDump('posDiag2');">posDiag2</a>
-                <a class="button" href="javascript:UI.Browser.priv.clickDump('validMoves');">validMoves</a>
-                <a class="button" href="javascript:UI.Browser.priv.clickDump('sit');">Sit</a>
-                <a id="button_auto" class="button" href="javascript:UI.Browser.priv.clickAuto();">Auto</a>
+                <a id="do-dump-pos_h"       class="button" href="#">posH</a>
+                <a id="do-dump-pos_v"       class="button" href="#">posV</a>
+                <a id="do-dump-pos_diag1"   class="button" href="#">posDiag1</a>
+                <a id="do-dump-pos_diag2"   class="button" href="#">posDiag2</a>
+                <a id="do-dump-valid_moves" class="button" href="#">validMoves</a>
+                <a id="do-dump-sit"         class="button" href="#">Sit</a>
+                <a id="do-auto"             class="button" href="#">Auto</a>
             </span>
         </div>
         <span id="settings"><span class="container">
-            <span class="p"><span class="title">Computer player</span></span>
-            <span class="p">
-                <input type="radio" name="computer_col" id="computer_col_0" onclick="UI.Browser.priv.setComputerCol(0)">None
-                <input type="radio" name="computer_col" id="computer_col_2" onclick="UI.Browser.priv.setComputerCol(2)">Black
-                <input type="radio" name="computer_col" id="computer_col_1" onclick="UI.Browser.priv.setComputerCol(1)">White
-            </span>
-            <span class="p"><span class="title">Calculation Time</span></span>
-            <span class="p">Limit to <input id="time" maxlength="3" size="2" value="8"> seconds</span>
-            <span class="p right"><a class="button" href="javascript:UI.Browser.priv.closeSettings();">Close</a></span>
+            <p class="title">Black Player</p>
+            <p>
+                <select id="col1-engine"></select>
+            </p>
+            <p class="title">White Player</p>
+            <p>
+                <select id="col2-engine"></select>
+            </p>
+            <p class="title">Calculation Time</p>
+            <p>Limit to <input id="time" maxlength="3" size="2" value="8"> seconds</p>
+            <p class="right"><a id="do-close_settings-ok" class="button" href="#">OK</a></p>
+            <p class="right"><a id="do-close_settings-cancel" class="button" href="#">Cancel</a></p>
         </span></span>
         <div id="status_outer"><div id="status">&nbsp;</div></div>
         <div id="board"></div>

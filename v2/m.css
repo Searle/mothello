@@ -39,11 +39,21 @@ body {
     background-color: #FFF;
     padding: 10px;
 }
-#settings .p {
-    display: block;
+#settings select {
+    width: 240px;
+}
+#settings input, #settings select {
+    padding: 2px;
+    -border-radius: 2px;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    border: solid 2px #000;
+}
+#settings p {
+    margin: 0;
     padding: 0.4em;
 }
-#settings .p .title {
+#settings p.title {
     padding-top: 0.6em;
     border-bottom: 3px solid #988579;
 }
@@ -112,7 +122,8 @@ body {
     margin: 20px;
     border: 1px solid #888;
 }
-.button, .button_off {
+.button {
+    -border-radius: 6px;
     -moz-border-radius: 6px;
     -webkit-border-radius: 6px;
     padding: 4px 8px;
@@ -122,10 +133,13 @@ body {
     text-decoration: none;
     color: #000;
 }
-.button_off {
+.button.off {
     color: #CCC;
     border-color: #444;
 }
 .button:hover {
     background-color: #DDD;
+}
+.button.off:hover {
+    background-color: #EEE;
 }

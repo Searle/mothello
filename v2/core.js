@@ -229,7 +229,7 @@ Core= (function() {
                 // UI.log(valid);
             }
 
-UI.log("iniPosList: " + pos0);
+// UI.log("iniPosList: " + pos0);
 
             if ( pos0 < 65536 ) {
                 UI.setTimeout(function() { nextChunk(); }, 1);
@@ -249,7 +249,7 @@ UI.log("iniPosList: " + pos0);
     // Important Optimization to reduce Closure overhead for FF in make*-Functions
     // Change to "" to turn off.
     var localize= "local_";
-    localize= "";
+    // localize= "";
 
 
     // Builds an optimized function that calculates the valid moves.
@@ -330,7 +330,7 @@ UI.log("iniPosList: " + pos0);
             , " }"
         );
 
-        // UI.log(result.join("\n"));
+//        UI.log(result.join("\n"));
 
         eval("getValidMoves= (" + result.join('') + ");");
     }
@@ -652,14 +652,17 @@ UI.log("iniPosList: " + pos0);
     }
 
     var finished= function() {
-        if (boardLog.length < 4) return true;
-        if (boardLog[boardLog.length - 2] == 64 && boardLog[boardLog.length - 1] == 64) return true;
-        if (getValidMoves()[0] == 64) {
+        if ( boardLog.length < 4 ) return true;
+        if ( boardLog[boardLog.length - 2] == 64 && boardLog[boardLog.length - 1] == 64) return true;
+
+/*
+        if ( getValidMoves()[0] == 64 ) {
             swapCol();
             var fin= getValidMoves()[0] == 64;
             swapCol();
             return fin;
         }
+*/
         return false;
     }
 
@@ -794,11 +797,11 @@ UI.log("iniPosList: " + pos0);
         });
     };
 
-    function colAtXY( x, y ) {
+    function colAtXY ( x, y ) {
         return (posH[y] >> (x * 2)) & 3;
     };
 
-    var computeMove= function(secs, doneFn) {
+    var computeMove= function (engine, secs, doneFn) {
 
         var moves= unique(getValidMoves());
 
@@ -821,7 +824,9 @@ UI.log("iniPosList: " + pos0);
         var gameState= new GameState();
         gameState.capture();
 
-        Compute.run(startTime, endTime, moves, function (move, comment) {
+console.log(engine);
+
+        engine.implementation.run(startTime, endTime, moves, function (move, comment) {
             gameState.restore();
 
             endTime= 0;
@@ -842,7 +847,6 @@ UI.log("iniPosList: " + pos0);
         init:           init,
         colAtXY:        colAtXY,
         colAtCell:      colAtCell,
-        finished:       finished,
         computeMove:    computeMove,
         pass:           pass,
         colName:        colName,
@@ -858,13 +862,15 @@ UI.log("iniPosList: " + pos0);
         boardLog:       function () { return boardLog; },
         
         started:        function () { return boardLog.length >= 4; },
+        stopping:       function() {
+                            return stopCalculating;
+                        },
         computing:      function () { return endTime; },
+        finished:       finished,
+
         stopComputing:  function () {
                             endTime= 1;
                             stopCalculating= true;
-                        },
-        stopping:       function() {
-                            return stopCalculating;
                         },
 
         diff:           function () { return diff; },

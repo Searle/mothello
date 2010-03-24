@@ -68,7 +68,7 @@ UI.Browser= (function() {
         for (var y= 0; y < 8; y++) {
             html += '<tr>';
             for (var x= 0; x < 8; x++, i++) {
-                html += '<td onclick="UI.Browser.priv.clickCell(' + i + ')" id="cell' + i + '"><div class="cell"></div></td>';
+                html += '<td id="cell' + i + '"><div class="cell"></div></td>';
             }
             html += '</tr>';
         }
@@ -128,10 +128,6 @@ UI.Browser= (function() {
         }
     }
 
-    // ====================================================================
-    //  UI
-    // ====================================================================
-
     var computing= function() {
         if ( !initPosListDone ) {
             status("Please wait until the game is ready!");
@@ -144,8 +140,16 @@ UI.Browser= (function() {
         return false;
     }
 
+    var col1Engine;
+    var col2Engine;
+
     var computerCol= 0;
     var oldComputerCol= 0;
+
+
+    // ====================================================================
+    //  Private API
+    // ====================================================================
 
     var setComputerCol= function(newCol) {
         if (computerCol == 3) {
@@ -156,20 +160,20 @@ UI.Browser= (function() {
     }
 
     var updateUI= function() {
-        var begun= Core.started();
-        var is_finished= Core.finished();
+        var started= Core.started();
+        var finished= Core.finished();
         var computing= Core.computing();
 
         var up= function(button, on) {
-            document.getElementById('button_' + button).className= on ? 'button' : 'button_off';
+            document.getElementById('do-' + button).className= on ? 'button' : 'button off';
         };
 
-        up("new_game",  !computing && begun);
-        up("undo",      !computing && begun);
-        up("pass",      !computing && !is_finished);
-        up("tip",       !computing && !is_finished);
+        up("new_game",  !computing && started);
+        up("undo",      !computing && started);
+        up("pass",      !computing && !finished);
+        up("tip",       !computing && !finished);
         up("stop",      computing);
-        up("settings",  true);
+        up("open_settings",  true);
     }
 
     var refreshBoard= function() {
@@ -194,32 +198,39 @@ UI.Browser= (function() {
         updateUI();
     }
 
-    var computeMove= function(tip) {
-        Core.computeMove(document.getElementById('time').value, function(move, comment) {
+    var computeMove= function(engine, tip, doneFn) {
+        Core.computeMove(engine, document.getElementById('time').value, function(move, comment) {
 
-            if ( move == 64 ) {
-                UI.status('Pass. I can\'t make a move :-(', 3);
-                if ( !tip ) pass();
-                UI.refreshBoard();
-                return;
+            if ( move < 0 ) {
+                // Cooperative Multi-Tasking Break
             }
-            
-            if ( !tip ) {
-                Core.makeMove(move);
+            else if ( move == 64 ) {
+                status('Pass. I can\'t make a move :-(', 3);
+                if ( !tip ) Core.pass();
                 refreshBoard();
-                markCell(move, 'last-move');
             }
             else {
-                updateUI();
-                markCell(move, 'tip-move');
-            }
+                if ( !tip ) {
+                    Core.makeMove(move);
+                    refreshBoard();
+                    markCell(move, 'last-move');
+                }
+                else {
+                    updateUI();
+                    markCell(move, 'tip-move');
+                }
 
-            status('Done.'
-                // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
-                + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
-                + (comment ? ' ' + comment : '')
-            , 3);
+                status('Done.'
+                    // + ' My move is (' + move + ') ' + ((move & 7) + 1) + ',' + ((move >> 3) + 1) + '.'
+                    + ' My move is ' + ((move & 7) + 1) + '-' + ((move >> 3) + 1) + '.'
+                    + (comment ? ' ' + comment : '')
+                , 3);
+            }
+            
+            doneFn(move);
         });
+
+// FIXME : ueberfluessig
         
         updateUI();
     }
@@ -312,16 +323,6 @@ UI.Browser= (function() {
         Core.stopComputing();
     }
 
-    var clickSettings= function() {
-        //// if (!initPosListDone) return;
-
-        // document.getElementById('computer_col_0').enabled= computerCol != 3;
-        // document.getElementById('computer_col_1').enabled= computerCol != 3;
-        // document.getElementById('computer_col_2').enabled= computerCol != 3;
-        document.getElementById('computer_col_' + (computerCol == 3 ? oldComputerCol : computerCol)).checked= 1;
-        document.getElementById('settings').style.display= 'block';
-    }
-
     var clickCloseSettings= function() {
         document.getElementById('settings').style.display= 'none';
         if ( !Core.computing() && (computerCol & Core.col()) ) {
@@ -362,6 +363,155 @@ UI.Browser= (function() {
         wait();
     }
 
+    // ====================================================================
+    //  Event Loop
+    // ====================================================================
+
+    var do_command;
+    var do_param;
+
+    var do_commands= {};
+
+    do_commands.open_settings= {
+        exec: function () {
+
+            var fillOptions= function (id, engine) {
+                var selectBox= document.getElementById(id);
+                var options= selectBox.options;
+                if ( options.length == 0 ) {
+                
+                    var engines= Reversi.getEngines();
+                    for ( var i= 0; i < engines.length; i++ ) {
+                        var engine= engines[i];
+                        var title= engine.title;
+                        options[options.length]= new Option(title, engine.name);
+                    }
+                }
+                for ( var i= options.length; engine && i--; ) {
+                    if ( options[i].value == engine.name ) {
+                        selectBox.selectedIndex= i;
+                        break;
+                    }
+                }
+
+    console.log(engine);
+
+            }
+
+            //// if (!initPosListDone) return;
+
+            // document.getElementById('computer_col_0').enabled= computerCol != 3;
+            // document.getElementById('computer_col_1').enabled= computerCol != 3;
+            // document.getElementById('computer_col_2').enabled= computerCol != 3;
+
+//            document.getElementById('computer_col_' + (computerCol == 3 ? oldComputerCol : computerCol)).checked= 1;
+
+            document.getElementById('settings').style.display= 'block';
+
+            fillOptions('col1-engine', col1Engine);
+            fillOptions('col2-engine', col2Engine);
+        }
+    };
+
+    do_commands.close_settings= {
+        exec: function (value) {
+            document.getElementById('settings').style.display= 'none';
+
+            if ( value == 'ok' ) {
+                col1Engine= Reversi.getEngine(document.getElementById('col1-engine').value);
+                col2Engine= Reversi.getEngine(document.getElementById('col2-engine').value);
+            }
+
+//            if ( !Core.computing() && (computerCol & Core.col()) ) {
+//                computeMove();
+//            }
+        }
+    };
+
+    var doCommandExec= function() {
+
+        if ( !do_command ) return;
+
+        console.error(do_command, do_param);
+
+        if ( do_commands[do_command] ) {
+            if ( !do_commands[do_command].valid || (do_commands[do_command].valid)() ) {
+                (do_commands[do_command].exec)(do_param);
+            }
+        }
+
+        do_command= null;
+    };
+
+    var loop= function() {
+
+        var col= Core.col();
+        var engine= col == 1 ? col1Engine : col2Engine;
+
+/*
+        var wait= function() {
+            if ( !Core.computing() ) {
+            
+                // FIXME: computeMove wartet nicht!
+                
+                if ( !computeMove() && !computeMove() ) {
+                    computerCol= oldComputerCol;
+                    UI.log("GAME IS OVER");
+                    defaultStatus();
+
+                    score[diff > 0 ? 0 : 1]++;
+                    document.getElementById('button_auto').innerHTML= score.join(':');
+
+                    if ( Core.stopping() ) return;
+
+                    initBoard();
+                }
+            }
+            if ( !Core.stopping() ) setTimeout(wait, 500);
+        }
+        wait();
+*/
+
+console.log("LOOP", Math.random());
+
+        doCommandExec();
+
+        if ( !Core.finished() && !Core.computing() ) {
+
+            console.log('TURN:', engine.title);
+
+            computeMove(engine, false, function (move) {
+
+
+            });
+        }
+
+        setTimeout(loop, 200);
+    };
+
+    var clickEvent= function (event, a, b) {
+        var node= event.target;
+        while ( node && typeof node.id === "string" ) {
+            var match= node.id.match(/^do-([a-z_]+)(-(.*))?$/);
+            if ( match ) {
+                do_command= match[1];
+                do_param= match[3];
+                return true;
+            }
+            var match= node.id.match(/^(cell)(\d+)$/);
+            if ( match ) {
+                do_command= match[1];
+                do_param= match[2];
+                return true;
+            }
+            node= node.parentNode;
+        }
+    };
+
+    // ====================================================================
+    //  Public API
+    // ====================================================================
+
     var init= function(doneFn) {
         printBoard();
         doneFn();
@@ -370,6 +520,20 @@ UI.Browser= (function() {
     var ready= function() {
         refreshBoard();
         defaultStatus();
+
+        // TODO: Test values
+        col1Engine= (Reversi.getEngines())[1];
+        col2Engine= (Reversi.getEngines())[2];
+
+        var el= document.getElementById('body');
+        if ( el.addEventListener ) {  
+            el.addEventListener('click', clickEvent, false);   
+        }
+        else if ( el.attachEvent ) {  
+            el.attachEvent('onclick', clickEvent);  
+        }  
+
+        loop();
     };
 
     var log;
@@ -387,33 +551,28 @@ UI.Browser= (function() {
         log= console.log;
     }
 
+    Reversi.addEngine({
+        name:       "human",
+        author:     "D.Raisin",
+        email:      "info1@raisin.de",
+        version:    "2010030100",
+        title:      "Human",
+        description: "Human player",
+        implementation:  {
+
+            run: function (startTime, endTime, initialMoves, doneFn) {
+                humanDoneFn= doneFn;
+                // doneFn(initialMoves[Math.floor(Math.random() * initialMoves.length)]);
+            }
+        }
+    });
+
     return {
         init:       init,
         ready:      ready,
         status:     status,
         log:        log,
         setTimeout: function (fn, ms) { return setTimeout(fn, ms); },
-
-        priv: {
-            newGame:        clickNewGame,
-            undo:           clickUndo,
-            pass:           clickPass,
-            tip:            clickTip,
-            stop:           clickStop,
-            dump:           clickDump,
-            auto:           clickAuto,
-            setComputerCol: setComputerCol,
-            openSettings:   clickSettings,
-            closeSettings:  clickCloseSettings,
-            clickCell:      clickCell,
-        },
-        
-        // Callbacks:
-
-//        defaultStatus: defaultStatus,
-//        refreshBoard: refreshBoard, // Callback from Core
-//        updateUI: updateUI,  // Callback from Core
-//        markCell: markCell,  // Callback from Core
     }
 
 })();   // END UI

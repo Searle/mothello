@@ -19,6 +19,8 @@
 
 (function () {
 
+    var engines= [];
+
     var NOP= function() {};
 
     UI= {
@@ -77,14 +79,27 @@ UI.log("Core.init callback");
         });
     }
 
-    var addEngine= function () {
-        // ENOTIMPL
+    var addEngine= function (engine) {
+        engines.push(engine);
+    };
+
+    var getEngines= function() {
+        return engines;
+    };
+
+    var getEngine= function(name) {
+        for ( var i= engines.length; i--; ) {
+            if ( engines[i].name == name ) return engines[i];
+        }
+        return null;
     };
 
     // Expose API
     Reversi= {
         init:       init,
         addEngine:  addEngine,
+        getEngines: getEngines,
+        getEngine:  getEngine,
     };
 
 })();
