@@ -69,6 +69,7 @@
 
     var cellScore;
 
+    var setAts;
     var setAt;
 
     var computerCol= 0;
@@ -134,10 +135,10 @@
 
         validMoves= [];
 
-        setAt[28]();
-        setAt[27]();
-        setAt[35]();
-        setAt[36]();
+        setAt(28);
+        setAt(27);
+        setAt(35);
+        setAt(36);
     }
 
     //  The entries for all possible positions for one row are stored in the
@@ -283,8 +284,8 @@
             var lastLength= result.length;
             func();
             if (lastLength != result.length) {
-                for (i in aBefore) result.splice(lastLength++, 0, aBefore[i]);
-                for (i in aAfter) result.splice(result.length, 0, aAfter[i]);
+                for (var i in aBefore) result.splice(lastLength++, 0, aBefore[i]);
+                for (var i in aAfter) result.splice(result.length, 0, aAfter[i]);
             }
         };
 
@@ -471,7 +472,7 @@
 
         initBoard();
         for (var i= 4; i < flog2.length - count; i++) {
-            setAt[flog2[i]]();
+            setAt(flog2[i]);
         }
     }
 
@@ -570,7 +571,7 @@
 
         var doMove= function(move) {
             if (!tip) {
-                setAt[move]();
+                setAt(move);
                 refreshBoard();
                 markCell(move, 'last-move');
             }
@@ -612,7 +613,7 @@
         for (var movei in moves) {
             var move= moves[movei];
 
-            setAt[move]();
+            setAt(move);
             oppMoves[movei]= unique(getValidMoves());
             oppScores[movei]= zero64.concat().splice(0, oppMoves[movei].length);
             restoreBoard();
@@ -828,10 +829,10 @@
                             oppMove= oppMoves[movei][oppMovei];
 
                             restoreBoard();
-                            setAt[move]();
+                            setAt(move);
 
 // console.log(oppMoves[move]);
-                            setAt[oppMove]();
+                            setAt(oppMove);
 
                             while (1) {
                                 nextMoves= getValidMoves();
@@ -841,7 +842,7 @@
                                     if (nextMoves[0] == 64) break;
                                 }
                                 nextMove= nextMoves[Math.floor(Math.random() * nextMoves.length)];
-                                setAt[nextMove]();
+                                setAt(nextMove);
                             }        
 
                             if (capCol == 2) {
@@ -1008,7 +1009,7 @@
         if (posXName == 'sit') {
             var s= '';
             for (var i= 4; i < boardLog.length; i++) {
-                s += 'setAt[' + boardLog[i] + '](); ';
+                s += 'setAt(' + boardLog[i] + '); ';
                 if (i & 1) s += ' ';
             }
             console.log(s);
@@ -1093,7 +1094,7 @@
             return;
         }
 
-        setAt[move]();
+        setAt(move);
         refreshBoard();
         defaultStatus();
         markCell(move, 'last-move');
@@ -1225,10 +1226,18 @@
         })();
         printBoard();
 
-        setAt= []
-        for (var i= 64; i--; ) makeSetAt(i);
-        setAt[64]= pass;
-        
+        setAts= makeSetAt(i);
+        setAt= function( move ) {
+            if ( move == 64 ) {
+                return pass();
+            }
+            setAts[move](boardLog, posList, posH, posV, posDiag1, posDiag2);
+            // wie swapCol()
+            col= 3 - col;
+            colMask= 65535 - colMask;
+            colDiff= -colDiff;
+        }
+
         initPosList();
 
         var ready= function() {
