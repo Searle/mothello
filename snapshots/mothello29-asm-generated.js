@@ -1121,10 +1121,6 @@ function makeSetAt() {
 
      pos= posList[posDiag2[0] ^ colMask];
      posDiag2[0] |= col;
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -1309,10 +1305,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -1501,10 +1493,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -1693,10 +1681,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -1885,10 +1869,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -2077,10 +2057,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -2265,10 +2241,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -2431,10 +2403,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -2619,10 +2587,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -2840,10 +2804,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -3065,10 +3025,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -3290,10 +3246,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -3515,10 +3467,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -3740,10 +3688,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -3961,10 +3905,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -4149,10 +4089,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -4341,10 +4277,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -4566,10 +4498,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -4811,10 +4739,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -5056,10 +4980,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -5301,10 +5221,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -5546,10 +5462,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -5771,10 +5683,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -5963,10 +5871,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -6155,10 +6059,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -6380,10 +6280,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -6625,10 +6521,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -6884,10 +6776,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -7143,10 +7031,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -7388,10 +7272,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -7613,10 +7493,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -7805,10 +7681,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -7997,10 +7869,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -8222,10 +8090,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -8467,10 +8331,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -8726,10 +8586,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -8985,10 +8841,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -9230,10 +9082,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -9455,10 +9303,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -9647,10 +9491,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -9839,10 +9679,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -10064,10 +9900,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -10309,10 +10141,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -10554,10 +10382,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -10799,10 +10623,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -11044,10 +10864,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -11269,10 +11085,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -11461,10 +11273,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -11649,10 +11457,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -11870,10 +11674,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -12095,10 +11895,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -12320,10 +12116,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -12545,10 +12337,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -12770,10 +12558,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -12991,10 +12775,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -13179,10 +12959,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -13345,10 +13121,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -13533,10 +13305,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -13725,10 +13493,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -13917,10 +13681,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -14109,10 +13869,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -14301,10 +14057,6 @@ function makeSetAt() {
          diff += (colDiff + colDiff) * qi;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -14489,10 +14241,6 @@ function makeSetAt() {
          diff += colDiff + colDiff;
 
 }
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
 
  function( boardLog, posList, posH, posV, posDiag1, posDiag2 ) {
@@ -14655,10 +14403,6 @@ function makeSetAt() {
 
      pos= posList[posDiag2[14] ^ colMask];
      posDiag2[14] |= col;
-
-     col= 3 - col;
-     colMask= 65535 - colMask;
-     colDiff= -colDiff;
  },
  ];
 }

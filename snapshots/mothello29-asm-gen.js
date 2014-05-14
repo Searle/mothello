@@ -237,12 +237,7 @@
         flip(movedbx + 11, -1,  1);
         flip(movedbx + 12,  1, -1);
 
-        result.push(""
-            , "     col= 3 - col;"
-            , "     colMask= 65535 - colMask;"
-            , "     colDiff= -colDiff;"
-            , " }"
-        );
+        result.push(" }");
 
         // if (move == 22) { console.log(result.join("\n")); die(); }
 
