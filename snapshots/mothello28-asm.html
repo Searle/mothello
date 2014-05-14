@@ -1,0 +1,182 @@
+<head>
+<title>MoThello</title>
+<script src="mothello28-asm.js"></script>
+<style>
+    body {
+        font-family: Tahoma, sans-serif;
+        height: 100.1%;
+        border: 0;
+        margin: 0;
+    }
+    #head {
+        background-color: black;        
+        padding: 10px 10px ;
+        margin: 0 0 8px 0;
+        color: #FFF;
+        text-align: right;
+    }
+    #head h1 {
+        float: left;
+        text-weight: bold;
+        font-size: 100%;
+        padding: 0;
+        margin: 0;
+        color: #F2D4C0;
+    }
+    #head a {
+        color: #FFF;
+    }
+    #body {
+        padding: 10px;
+    }
+    #settings {
+        position: relative;
+        z-index: 1;
+        display: none;
+    }
+    #settings .container {
+        position: absolute;
+        top: 1em;
+        left: 1em;
+        width: 300px;
+        border: 1px solid black;
+        background-color: #FFF;
+        padding: 10px;
+    }
+    #settings .p {
+        display: block;
+        padding: 0.4em;
+    }
+    #settings .p .title {
+        padding-top: 0.6em;
+        border-bottom: 3px solid #988579;
+    }
+    #settings .right {
+        text-align: right;
+    }
+    #board table {
+        border-collapse: collapse;
+        border: solid 6px #988579;
+        background-color: #DABFAD;
+    }
+    #board table tr {
+        vertical-align: top;
+    }
+    #board table td {
+        border: solid 3px #B8A192;
+        text-align: center;
+        cursor: pointer;
+    }
+    #board .cell {
+        position: relative;
+        overflow: hidden;
+        width: 40px;
+        height: 40px;
+    }
+    #board .cell div {
+        width: 40px;
+        text-align: center;
+        position: absolute;
+        margin: 0;
+        padding: 0;
+    }
+    #board .cell .num {
+        font-size: 8px;
+        color: #FFF;
+    }
+    #board .cell .stone-bg, #board .cell .stone-fg {
+        top: -15px;
+        font-size: 300%;
+    }
+    #board .cell .stone-bg {
+        color: #fff;
+    }
+    #board .valid-move-1 {
+        background-color: #F2D4C0;  /* whitish */
+    }
+    #board .valid-move-2 {
+        background-color: #A79285;  /* blackish */
+    }
+    /* red: E55252 yellow: E5E052 */
+    #board .last-move {
+        background-color: #52C1E5;  /* blue */
+    }
+    #board .tip-move {
+        background-color: #52E574;  /* green */
+    }
+    #status_outer {
+        overflow: hidden;
+        margin: 16px 0 10px 0;
+    }
+    #status {
+        width: 1000px;
+    }
+    #console {
+        padding: 20px;
+        margin: 20px;
+        border: 1px solid #888;
+    }
+    .button, .button_off {
+        -moz-border-radius: 6px;
+        -webkit-border-radius: 6px;
+        padding: 4px 8px;
+        margin-right: 4px;
+        border: solid 2px #000;
+        background-color: #EEE;
+        text-decoration: none;
+        color: #000;
+    }
+    .button_off {
+        color: #CCC;
+        border-color: #444;
+    }
+    .button:hover {
+        background-color: #DDD;
+    }
+    .debug {
+        x-display: none;
+    }
+</style>
+</head>
+<body onload="doOnload()">
+    <div id="head">
+        <h1>MoThello</h1>
+        <small>(c) 2008 by Dietrich Raisin, info@raisin.de, <a href="http://www.raisin.de/">www.raisin.de</a></small>
+    </div>
+    <div id="body">
+        <div>
+            <table cellspacing="0" cellpadding="0"><tr>
+                <td><a id="button_new_game" class="button_off" href="javascript:clickNewGame();">New</a></td>
+                <td><a id="button_undo"     class="button_off" href="javascript:clickUndo();">Undo</a></td>
+                <td><a id="button_pass"     class="button_off" href="javascript:clickPass();">Pass</a></td>
+                <td><a id="button_tip"      class="button_off" href="javascript:clickTip();">Tip</a></td>
+                <td><a id="button_stop"     class="button_off" href="javascript:clickStop();">Stop</a></td>
+                <td><a id="button_settings" class="button_off" href="javascript:clickSettings();">Settings</a></td>
+            </tr></table>
+        
+            <span class="debug">
+                <a class="button" href="javascript:clickDump('posH');">posH</a>
+                <a class="button" href="javascript:clickDump('posV');">posV</a>
+                <a class="button" href="javascript:clickDump('posDiag1');">posDiag1</a>
+                <a class="button" href="javascript:clickDump('posDiag2');">posDiag2</a>
+                <a class="button" href="javascript:clickDump('validMoves');">validMoves</a>
+                <a class="button" href="javascript:clickDump('sit');">Sit</a>
+                <a id="button_auto" class="button" href="javascript:clickAuto();">Auto</a>
+            </span>
+        </div>
+        <span id="settings"><span class="container">
+            <span class="p"><span class="title">Computer player</span></span>
+            <span class="p">
+                <input type="radio" name="computer_col" id="computer_col_0" onclick="setComputerCol(0)">None
+                <input type="radio" name="computer_col" id="computer_col_2" onclick="setComputerCol(2)">Black
+                <input type="radio" name="computer_col" id="computer_col_1" onclick="setComputerCol(1)">White
+            </span>
+            <span class="p"><span class="title">Calculation Time</span></span>
+            <span class="p">Limit to <input id="time" maxlength="3" size="2" value="8"> seconds</span>
+            <span class="p right"><a class="button" href="javascript:clickCloseSettings();">Close</a></span>
+        </span></span>
+        <div id="status_outer"><div id="status">&nbsp;</div></div>
+        <div id="board"></div>
+        <div id="console" class="debug"></div>
+    </div>
+</body>
